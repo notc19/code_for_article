@@ -110,6 +110,7 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
         chrom = annot[trans][0]
         exons = annot[trans][1]
         pos_and_nucl = hgvsc[1].split('.')[1]
+
         if not '-' in hgvsc[1] and not '+' in hgvsc[1] and not '*' in hgvsc[1]:
             j = len(['_' for c in range(len(pos_and_nucl)) if pos_and_nucl[c].isdigit()]) # index of the last digit +1
             ref = pos_and_nucl[j:].split('>')[0]
@@ -118,24 +119,23 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
                 pos_c = int(str(pos_and_nucl[:j]).split('_')[0])
             i = 0
             while True:
-                try:
-                    if pos_c > (int(exons[i][1]) - int(exons[i][0])):
-                        pos_c -= (int(exons[i][1]) - int(exons[i][0]))
-
-                    elif pos_c <= (int(exons[i][1]) - int(exons[i][0])):
-                        pos = int(exons[i][0]) + pos_c
-                        break
-                except IndexError:
-                    print(j, pos_and_nucl[:j], pos_c, pos_and_nucl)
+                if pos_c > (int(exons[i][1]) - int(exons[i][0])):
+                    pos_c -= (int(exons[i][1]) - int(exons[i][0]))
+                elif pos_c <= (int(exons[i][1]) - int(exons[i][0])):
+                    pos = int(exons[i][0]) + pos_c
+                    break
                 i += 1
+
         elif pos_and_nucl.startswith('-'):
             j = len(['_' for c in range(len(pos_and_nucl)) if pos_and_nucl[c].isdigit()]) # index of the last digit +1
             ref = pos_and_nucl[j:].split('>')[0]
             pos = int(exons[0][0]) - int(pos_and_nucl[1:j])
+
         elif pos_and_nucl.startswith('*'):
             j = len(['_' for c in range(len(pos_and_nucl)) if pos_and_nucl[c].isdigit()]) # index of the last digit +1
             ref = pos_and_nucl[j:].split('>')[0]
             pos = int(exons[1][1]) + int(pos_and_nucl[1:j])
+            
         else:
             logger.warning(f'This format of HGVS mutation ({trans +":"+hgvsc[1]}) is not supproted yet. Skipping this variant')
             return None
