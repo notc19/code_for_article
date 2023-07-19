@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 from datetime import datetime
 import argparse
 
-import regions_and_sequences_tools as rstools
+import get_regions_for_mutations as rstools
 import utils
 
 def create_logger(timestamp):
@@ -86,7 +86,7 @@ def main():
     # Setup logging
     timestamp = datetime.now()
     logger = create_logger(timestamp)
-    logger.info(f'######### Start Pipeline at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
+    logger.info(f'######### Start OligoDesigner at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
 
     # Reads params
     logger.info('The OligoDesigner was launched with the following parameters:')
@@ -113,6 +113,7 @@ def main():
     if input_genes_list:
         input_genes_bed_list = rstools.get_regions_for_genes(input_genes_list, params.annot)
         input_bed_list.extend(input_genes_bed_list)
+
     if input_muts_list:
         flank_length = int(params.bait_length * 1.7 / 2) if not params.mutation_flank else params.mutation_flank
         input_muts_bed_list = rstools.get_regions_for_muts(input_muts_list, annot_for_muts, flank_length, \
@@ -120,11 +121,11 @@ def main():
                                                            params.genome_version)
         input_bed_list.extend(input_muts_bed_list)
 
-    if input_bed_list:
-        input_fasta_intermed_list = rstools.get_fasta_seqs_from_bed(input_bed_list, params.genome, params.genome_version)
-        input_fasta_list.extend(input_fasta_intermed_list)
+    #if input_bed_list:
+    #    input_fasta_intermed_list = rstools.get_fasta_seqs_from_bed(input_bed_list, params.genome, params.genome_version)
+    #    input_fasta_list.extend(input_fasta_intermed_list)
     
-    logger.info(f'######### Finish Pipeline at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
+    logger.info(f'######### Finish OligoDesigner at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
 
 if __name__ == '__main__':
     main()

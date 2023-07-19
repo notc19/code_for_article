@@ -11,18 +11,18 @@ def prepare_annot_for_muts(input_muts_list, annot, logger):
     #logger.info('Preparing annotation file for mutations')
     transcript_dict = {}
     with open(annot) as infile:
-        input = [line.strip() for line in infile.readlines() if not line.startswith('#')]
-        for i in range(len(input)):
-            if input[i].split('\t')[2] == 'transcript':
-                transcript_id = input[i].split('";')[2].split('"')[1] + '.' + input[i].split('";')[3].split('"')[1]
-                transcript_chr = input[i].split('\t')[0]
+        annot = [line.strip() for line in infile.readlines() if not line.startswith('#')]
+        for i in range(len(annot)):
+            if annot[i].split('\t')[2] == 'transcript':
+                transcript_id = annot[i].split('";')[2].split('"')[1] + '.' + annot[i].split('";')[3].split('"')[1]
+                transcript_chr = annot[i].split('\t')[0]
                 exon_list = []
                 k = 1
                 while True:
-                    if (i + k == len(input)) or (input[i+k].split('\t')[2] == 'transcript'):
+                    if (i + k == len(annot)) or (annot[i+k].split('\t')[2] == 'transcript'):
                         break
-                    elif input[i+k].split('\t')[2] == 'exon':
-                        exon_list.append([input[i+k].split('\t')[3], input[i+k].split('\t')[4]])
+                    elif annot[i+k].split('\t')[2] == 'exon':
+                        exon_list.append([annot[i+k].split('\t')[3], annot[i+k].split('\t')[4]])
                     k += 1
                 transcript_dict[transcript_id] = [transcript_chr, exon_list]
 
