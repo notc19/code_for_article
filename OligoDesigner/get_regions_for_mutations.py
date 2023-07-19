@@ -1,6 +1,6 @@
 from constants import genome_versions_chromosome_dict
 
-def get_coords_for_vcf(vcf:str, flank_length:int):
+def get_coords_for_vcf(vcf:list, flank_length:int) -> str:
     """
     """
     chrom = vcf[0]
@@ -13,7 +13,7 @@ def get_coords_for_vcf(vcf:str, flank_length:int):
 
     return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + rsid
 
-def get_coords_for_hgvs_g(hgvsg:str, flank_length:int):
+def get_coords_for_hgvs_g(hgvsg:list, flank_length:int) -> str:
     """
     """
     chrom = hgvsg[0]
@@ -26,33 +26,6 @@ def get_coords_for_hgvs_g(hgvsg:str, flank_length:int):
     end = pos + flank_length
 
     return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsg)
-
-def fix_chromosome_name(coord_list, genome_version, logger):
-    """
-    """
-    fixed_coord_list = []
-    for coord in coord_list:
-        coord = coord.split()
-        chr_in_input = coord[0]
-        if coord[0][:3] != 'chr':
-            if coord[0].isdigit() or coord[0] == 'X' or coord[0] == 'Y':
-                fixed_chr = 'chr' + str(coord[0])
-            elif coord[0] in genome_versions_chromosome_dict[genome_version].keys():
-                fixed_chr = genome_versions_chromosome_dict[genome_version][coord[0]]
-            else:
-                logger.warning(f"Entry {coord} has invalid chromosome identifier '{coord[0]}' !!!!")
-                logger.warning(f"For genome {genome_version} only the following identifier formats are available : 1, chr1, NC_000001.11")
-                logger.warning(f"Skipping this variant")
-                continue
-        else:
-            fixed_chr = coord[0]
-        
-        try:
-            fixed_coord_list.append('\t'.join([fixed_chr, coord[1], coord[2], coord[3], coord[4], chr_in_input]))
-        except:
-            logger.warning(f'Something wrong with {coord} variant! It has no ref allele! Skipping this variant!')
-    
-    return fixed_coord_list
 
 def get_coords_for_hgvs_c_intr(pos_and_nucl, exons, sign):
     pos_c = int(pos_and_nucl.split(sign)[0])
@@ -86,9 +59,9 @@ def get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, sign, orient):
         pos_c = int(str(pos_and_nucl[1:]).split('_')[0].split(sign)[0])
         pos_m = int(str(pos_and_nucl[1:]).split('_')[0].split(sign)[1])
         print(pos_c, pos_m)
-    pos_m *= -1 if sign == '-' else pos_m
+    pos_m *= -1 if sign == '-' else 1
     pos = int(exons[-1][1]) + pos_c + pos_m if orient == '*' else int(exons[0][0]) - pos_c + pos_m
-
+    print(pos_c, pos_m, pos)
     return pos, ref
 
 def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
@@ -99,7 +72,7 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
         exons = annot[trans][1]
         pos_and_nucl = hgvsc[1].split('.')[1]
 
-        if not pos_and_nucl.startswith('-') and not pos_and_nucl.startswith('+') and not pos_and_nucl.startswith('*'):
+        if pos_and_nucl[0].isdigit():
             if not '-' in pos_and_nucl and not '+' in pos_and_nucl:
                 j = len(['_' for c in range(len(pos_and_nucl)) if pos_and_nucl[c].isdigit()]) # index of the last digit +1
                 ref = pos_and_nucl[j:].split('>')[0] if 'del' not in pos_and_nucl and 'ins' not in pos_and_nucl \
@@ -129,7 +102,11 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
                 ref = pos_and_nucl[j+1:].split('>')[0] if 'del' not in pos_and_nucl and 'ins' not in pos_and_nucl \
                     else 'del'+pos_and_nucl[1:].split('del')[1] if 'ins' not in pos_and_nucl \
                     else 'ins'+pos_and_nucl.split('ins')[1]
-                pos = int(exons[0][0]) - int(pos_and_nucl[1:j+1])
+                if '_' in str(pos_and_nucl):
+                    pos_c = int(str(pos_and_nucl[1:]).split('_')[0])
+                else:
+                    pos_c = int(pos_and_nucl[1:j+1])
+                pos = int(exons[0][0]) - pos_c
             elif '-' in pos_and_nucl[1:]:
                 pos, ref = get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, '-', '-')
             elif '+' in pos_and_nucl[1:]:
@@ -138,15 +115,18 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
         elif pos_and_nucl.startswith('*'):
             if not '-' in pos_and_nucl[1:] and not '+' in pos_and_nucl[1:]:
                 j = len(['_' for c in range(len(pos_and_nucl)) if pos_and_nucl[c].isdigit()]) # index of the last digit +1
-                ref = pos_and_nucl[j+1:].split('>')[0] if 'del' not in pos_and_nucl \
-                    else 'del'+pos_and_nucl[1:].split('del')[1] if 'ins' not in pos_and_nucl and 'del' not in pos_and_nucl \
+                ref = pos_and_nucl[j+1:].split('>')[0] if 'del' not in pos_and_nucl and 'ins' not in pos_and_nucl \
+                    else 'del'+pos_and_nucl[1:].split('del')[1] if 'ins' not in pos_and_nucl \
                     else 'ins'+pos_and_nucl.split('ins')[1]
-                pos = int(exons[1][1]) + int(pos_and_nucl[1:j+1])
+                if '_' in str(pos_and_nucl):
+                    pos_c = int(str(pos_and_nucl[1:]).split('_')[0])
+                else:
+                    pos_c = int(pos_and_nucl[1:j+1])
+                pos = int(exons[-1][1]) + pos_c
             elif '-' in pos_and_nucl[1:]:
                 pos, ref = get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, '-', '*')
             elif '+' in pos_and_nucl[1:]:
                 pos, ref = get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, '+', '*')
-            
         else:
             logger.warning(f'This format of HGVS mutation ({trans +":"+hgvsc[1]}) is not supproted yet. Skipping this variant')
             return None
@@ -158,6 +138,36 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
     end = pos + flank_length
 
     return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsc)
+
+def fix_chromosome_name_and_check_coords(coord_list:list, genome_version:str, logger) -> list:
+    """
+    """
+    fixed_coord_list = []
+    for coord in coord_list:
+        coord = coord.split()
+        chr_in_input = coord[0]
+        if coord[0][:3] != 'chr':
+            if coord[0].isdigit() or coord[0] == 'X' or coord[0] == 'Y':
+                fixed_chr = 'chr' + str(coord[0])
+            elif coord[0] in genome_versions_chromosome_dict[genome_version].keys():
+                fixed_chr = genome_versions_chromosome_dict[genome_version][coord[0]]
+            else:
+                logger.warning(f"Entry {coord} has invalid chromosome identifier '{coord[0]}' !!!!")
+                logger.warning(f"For genome {genome_version} only the following identifier formats are available : 1, chr1, NC_000001.11")
+                logger.warning(f"Skipping this variant")
+                continue
+        else:
+            fixed_chr = coord[0]
+        
+        if int(coord[1]) < 0 or int(coord[2]) < 0:
+            continue
+
+        try:
+            fixed_coord_list.append('\t'.join([fixed_chr, coord[1], coord[2], coord[3], coord[4], chr_in_input]))
+        except:
+            logger.warning(f'Something wrong with {coord} variant! It has no ref allele! Skipping this variant!')
+    
+    return fixed_coord_list
 
 def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_intermediate:bool, tmpdir:str, \
                          logger, genome_version:str):
@@ -195,7 +205,11 @@ def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_int
 
     # fix chromosome names for human genome assemblies
     if genome_version in ['GRCh38.p14', 'GRCh37.p13']:
-        bed_coords_list = fix_chromosome_name(bed_coords_list, genome_version, logger)
+        bed_coords_list = fix_chromosome_name_and_check_coords(bed_coords_list, genome_version, logger)
+
+    if not bed_coords_list:
+        logger.error('ERROR! No mutation were found! Check input files! Exiting...')
+        exit(1)
 
     mut_found_percent = len(bed_coords_list)/(vcf_counter + hgvs_counter)
     logger.info(f'Genome coordinates were found for {len(bed_coords_list)} ({round(mut_found_percent*100)}%) mutations')
@@ -211,12 +225,8 @@ def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_int
 
 
 if __name__ == '__main__':
-    #print(get_regions_for_muts(['#', 'chr1\t.\t100000\tA'],'asd',85, True, './tmpdir'))
-
-    #hgvsc = ['test','c.-209+1A>T']
-    hgvsc = ['test','c.209-10A>T']
-    hgvsc = ['test', 'c.47_24insCTCTCTC']
-    #hgvsc = ['test', 'c.112_913delCT'] 
+    # Simple test
+    hgvsc = ['test', 'c.*10+3A>G'] 
     flank_length = 100
     annot = {'test':['1', [[10,90],[100,200],[400,500]]]}
     print(get_coords_for_hgvs_c(hgvsc, flank_length, annot, ""))

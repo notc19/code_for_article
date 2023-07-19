@@ -19,18 +19,19 @@ def prepare_annot_for_muts(input_muts_list, annot, logger):
                 exon_list = []
                 k = 1
                 while True:
-                    if (i + k == len(annot)) or (annot[i+k].split('\t')[2] == 'transcript'):
+                    if (i + k == (len(annot))) or (annot[i+k].split('\t')[2] == 'transcript'):
                         break
                     elif annot[i+k].split('\t')[2] == 'exon':
                         exon_list.append([annot[i+k].split('\t')[3], annot[i+k].split('\t')[4]])
                     k += 1
                 transcript_dict[transcript_id] = [transcript_chr, exon_list]
-
+                    
+                #print(transcript_dict, exon_list)
     return transcript_dict
 
 def prepare_annot_for_genes(input_genes_list, annot, logger):
     pass
 
 if __name__ == '__main__':
-    d = prepare_annot_for_muts(['Chr2:c.123G>C'], '/home/a_vikhorev/Data/Genome/Homo_sapiens.GRCh38.109.gtf', '')
-    print(d['ENST00000641515.2'])
+    d = prepare_annot_for_muts(['Chr2:c.123G>C'], '/home/a_vikhorev/OligoDesigner/tests/test_annot.gtf', '')
+    print(d)
