@@ -10,7 +10,8 @@ from timeit import default_timer as timer
 from datetime import datetime
 import argparse
 
-import get_regions_for_mutations as rstools
+import get_regions_for_mutations as grfm
+import get_regions_for_genes as grfg
 import utils
 
 def create_logger(timestamp):
@@ -33,8 +34,8 @@ def parse_args():
     This is the docstring!
     """
     args_parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
-    args_parser.add_argument('-i','--input_genes',help='path to input file with genes',type=str,required=False, default=False)
-    args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',type=str,required=False, default='tests/test_input_muts_hgvs')
+    args_parser.add_argument('-i','--input_genes',help='path to input file with genes',type=str,required=False, default='tests/FileTest_input_genes')
+    args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',type=str,required=False, default='tests/FileTest_input_muts_hgvs') #tests/FileTest_input_muts_hgvs
     args_parser.add_argument('-b','--input_bed', help='path to input file with tartget regions in bed format',type=str,required=False, default=False)
     args_parser.add_argument('-f','--input_fasta', help='path to input file with tartget sequences in fasta format',type=str,required=False, default=False)
     args_parser.add_argument('-o','--output', help='path of output folder',type=str,required=False, default="./tests/test_reuslts")
@@ -45,6 +46,8 @@ def parse_args():
     args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation', required=False, default=0)
     args_parser.add_argument('-w','--write_intermediate', help='write intermediate results or not', required=False, default=True)
     args_parser.add_argument('-v','--genome_version', help='version of the reference genome', required=False, default='GRCh38.p14')
+    args_parser.add_argument('-r','--gene_regions', help='Type of gene regions to use [full/exons/exons_utr]', required=False, default='exon')
+    args_parser.add_argument('-j','--intron_depth', help='Depth of introns to include when only exons regions were chosen', required=False, default=50)
     
     return args_parser.parse_args()
 
@@ -101,22 +104,27 @@ def main():
     check_dir(params.tmpdir, logger, 'for temporary files')
     check_file(params.annot, logger, 'GTF file with annotation')
 
-    if input_genes_list:
-        annot_for_genes = utils.prepare_annot_for_genes(input_genes_list, params.annot, logger)
-
-    if input_muts_list:
-        annot_for_muts = utils.prepare_annot_for_muts(input_muts_list, params.annot, logger)
+    if input_genes_list or input_muts_list:
+        with open(params.annot) as infile:
+            annot = [line.strip() for line in infile.readlines() if not line.startswith('#')]
+            if input_genes_list:
+                annot_for_genes, gene_name_dict = utils.prepare_annot_for_genes(annot, logger)
+            if input_muts_list:
+                annot_for_muts = utils.prepare_annot_for_muts(input_muts_list, annot, logger)
 
     check_file(params.genome, logger, 'FASTA file with reference genome')
 
     # Get bed regions for input genes and/or mutations
     if input_genes_list:
-        input_genes_bed_list = rstools.get_regions_for_genes(input_genes_list, params.annot)
+        input_genes_bed_list = grfg.get_regions_for_genes(input_genes_list, annot_for_genes, gene_name_dict,
+                                                             params.gene_regions, params.intron_depth,
+                                                             params.write_intermediate, params.tmpdir, logger,
+                                                             params.genome_version)
         input_bed_list.extend(input_genes_bed_list)
 
     if input_muts_list:
         flank_length = int(params.bait_length * 1.7 / 2) if not params.mutation_flank else params.mutation_flank
-        input_muts_bed_list = rstools.get_regions_for_muts(input_muts_list, annot_for_muts, flank_length, \
+        input_muts_bed_list = grfm.get_regions_for_muts(input_muts_list, annot_for_muts, flank_length, \
                                                            params.write_intermediate, params.tmpdir, logger, \
                                                            params.genome_version)
         input_bed_list.extend(input_muts_bed_list)

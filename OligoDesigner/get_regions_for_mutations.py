@@ -11,7 +11,7 @@ def get_coords_for_vcf(vcf:list, flank_length:int) -> str:
     start = pos - flank_length
     end = pos + flank_length
 
-    return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + rsid
+    return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + rsid + '\t' + 'snp'
 
 def get_coords_for_hgvs_g(hgvsg:list, flank_length:int) -> str:
     """
@@ -25,7 +25,7 @@ def get_coords_for_hgvs_g(hgvsg:list, flank_length:int) -> str:
     start = pos - flank_length
     end = pos + flank_length
 
-    return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsg)
+    return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsg) + '\t' + 'snp'
 
 def get_coords_for_hgvs_c_intr(pos_and_nucl, exons, sign):
     pos_c = int(pos_and_nucl.split(sign)[0])
@@ -137,7 +137,7 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
     start = pos - flank_length
     end = pos + flank_length
 
-    return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsc)
+    return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsc) + '\t' + 'snp'
 
 def fix_chromosome_name_and_check_coords(coord_list:list, genome_version:str, logger) -> list:
     """
@@ -163,7 +163,7 @@ def fix_chromosome_name_and_check_coords(coord_list:list, genome_version:str, lo
             continue
 
         try:
-            fixed_coord_list.append('\t'.join([fixed_chr, coord[1], coord[2], coord[3], coord[4], chr_in_input]))
+            fixed_coord_list.append('\t'.join([fixed_chr, coord[1], coord[2], coord[3], coord[4], coord[5], chr_in_input]))
         except:
             logger.warning(f'Something wrong with {coord} variant! It has no ref allele! Skipping this variant!')
     
