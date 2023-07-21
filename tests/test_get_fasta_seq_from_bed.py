@@ -31,7 +31,8 @@ def test_create_fasta_sequences(coords_list, chrom, answ, logger):
 @pytest.mark.parametrize(
     "coords_list, genome, answ",
     [
-        (['chr1\t5\t10\ttest_g\texo3\texon\t1'], '/home/a_vikhorev/OligoDesigner/tests/FileTest_genome.fasta', ['>Region chrom:chr1 start:5 end:10 gene:test_g exon:exo3', 'TCGATC'])
+        (['chr1\t5\t10\ttest_g\texo3\texon\t1'], '/home/a_vikhorev/OligoDesigner/tests/FileTest_genome.fasta', ['>Region chrom:chr1 start:5 end:10 gene:test_g exon:exo3', 'TCGATC']),
+        (['chr1\t4\t15\ttest_g\texo3\texon\t1', 'chr3\t10\t20\ttest_g\texo3\texon\t1'], '/home/a_vikhorev/OligoDesigner/tests/FileTest_genome.fasta', ['>Region chrom:chr1 start:4 end:15 gene:test_g exon:exo3', 'ATCGATCACGAC', '>Region chrom:chr3 start:10 end:20 gene:test_g exon:exo3', 'CTACGATCGAC'])
     ]
 )
 def test_get_fasta_seqs_from_bed(coords_list, genome, answ, logger):

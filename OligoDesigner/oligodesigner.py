@@ -36,7 +36,7 @@ def parse_args():
     """
     args_parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
     args_parser.add_argument('-i','--input_genes',help='path to input file with genes',type=str,required=False, default='tests/FileTest_input_genes')
-    args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',type=str,required=False, default='tests/FileTest_input_muts_hgvs') #tests/FileTest_input_muts_hgvs
+    args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',type=str,required=False, default='tests/FileTest_input_muts') #tests/FileTest_input_muts_hgvs
     args_parser.add_argument('-b','--input_bed', help='path to input file with tartget regions in bed format',type=str,required=False, default=False)
     args_parser.add_argument('-f','--input_fasta', help='path to input file with tartget sequences in fasta format',type=str,required=False, default=False)
     args_parser.add_argument('-o','--output', help='path of output folder',type=str,required=False, default="./tests/test_reuslts")

@@ -1,3 +1,5 @@
+from constants import genome_versions_chromosome_dict
+
 def create_fasta_sequences(coords_list:list, chromosome, logger):
     
     sequence_list = []
@@ -47,8 +49,13 @@ def get_fasta_seqs_from_bed(coord_list, genome, genome_version, write_intermedia
                     fasta_seqs_list.extend(create_fasta_sequences(chrom_coord_dict[chromosome], chrom_seq, logger))
                     chrom_seq = ''
                     flag = 0
-                if line.split('>')[1].split(' ')[0] in chromosomes:
-                    chromosome = line.split('>')[1].split(' ')[0]
+                chromosome = line.split('>')[1].split(' ')[0]
+                if genome_version in ['GRCh38.p14', 'GRCh37.p13']:
+                    if chromosome.isdigit() or chromosome == 'X' or chromosome == 'Y' or chromosome == 'M':
+                        chromosome = 'chr' + chromosome
+                    elif chromosome in genome_versions_chromosome_dict[genome_version]:
+                        chromosome = genome_versions_chromosome_dict[chromosome]
+                if chromosome in chromosomes:
                     chrom_seq = ''
                     flag = 1
                 else:
@@ -65,15 +72,19 @@ def get_fasta_seqs_from_bed(coord_list, genome, genome_version, write_intermedia
 
 
 if __name__ == '__main__':
+    import logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.WARNING)
     coord_list = ['chr1\t1471665\t1472189\tENSG00000160072\tENSE00003889014\t1-2\t1', 'chr1\t1477174\t1477450\tENSG00000160072\tENSE00003467707\t1-2\t1',\
             'chr1\t1478949\t1479208\tENSG00000160072\tENSE00003608502\t4-5\t1', 'chr1\t1480767\t1481036\tENSG00000160072\tENSE00003474888\t4-5\t1',\
             'chr1\t10\t90\ttest_g\texo1\texon\t1', 'chr1\t100\t200\ttest_g\texo2\texon\t1',\
             'chr1\t400\t500\ttest_g\texo3\texon\t1']
-    genome = '/home/a_vikhorev/Data/DataBases/Hg38_GCA_000001405.15_BWA/GCA_000001405.15.fasta'
-    #genome = '/home/a_vikhorev/OligoDesigner/tests/FileTest_genome.fasta'
-
-    import time 
+    #genome = '/home/a_vikhorev/Data/DataBases/Hg38_GCA_000001405.15_BWA/GCA_000001405.15.fasta'
+    genome = '/home/a_vikhorev/OligoDesigner/tests/FileTest_genome.fasta'
+    coord_list = ['chr1\t4\t15\ttest_g\texo3\texon\t1', 'chr3\t10\t20\ttest_g\texo3\texon\t1']
+    import time
     start = time.time() ## точка отсчета времени
-    get_fasta_seqs_from_bed(coord_list, genome, '', True, './', '')
+    f = get_fasta_seqs_from_bed(coord_list, genome, 'GRCh38.p14', True, './', logger)
+    print(f)
     end = time.time() - start
     print(end)

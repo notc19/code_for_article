@@ -1,12 +1,21 @@
-##VCF
-#CHROM	id	start	end	ref	alt
-chr1	.	1111	A
-chr7	.	777	G
-## HGVSG
+#It won't work
+#wrong chromosome identifier
+bug:12345A>G
+#Ref allele in mutation not equal to ref allele in genome
+1:2348932C>_BUG
+#VCF-like mutation
+7	rs1343024399	55142334	A	T	40	PASS	AC=1;AN=8	GT:AF	0/1:0.5
+#HGVSG-like mutations
+#Mutation with common chromosome name and without g. after :
+chr7:55019025G>A
+#Mutation with numerical chromosome identifier
+7:55181307G>A
+#Mutation with chromosome NC identifier
+NC_000017.11:g.7669612G>C
+#MORE HGVSG mutations to test!!!
 NC_000023.11:g.32389644G>A
 NC_000017.11:g.7676154G>A
 NC_000019.10:g.61902G>T
-1:2348932C>T
-bug:12345A>G
+
 #HGVSC
-ENST00000641515.2:c.4A>C
+#ENST00000641515.2:c.4A>C
