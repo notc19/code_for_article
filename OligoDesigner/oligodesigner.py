@@ -12,6 +12,7 @@ import argparse
 
 import get_regions_for_mutations as grfm
 import get_regions_for_genes as grfg
+import get_fasta_seq_from_bed as gfsfb
 import utils
 
 def create_logger(timestamp):
@@ -22,7 +23,7 @@ def create_logger(timestamp):
 
     fh = logging.FileHandler(f'log_oligodesigner_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}.txt', mode='w') #-{timestamp.minute}
     fh.setLevel(logging.INFO)
-    fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
     logger = logging.getLogger()
     logger.addHandler(fh)
@@ -41,7 +42,7 @@ def parse_args():
     args_parser.add_argument('-o','--output', help='path of output folder',type=str,required=False, default="./tests/test_reuslts")
     args_parser.add_argument('-t','--tmpdir', help='path to directory with temporary files',type=str,required=False,default='./tests/test_reuslts')
     args_parser.add_argument('-a','--annot', help='path to file with genome annotation in GTF format',required=False,default='/home/a_vikhorev/Data/Genome/Homo_sapiens.GRCh38.109.gtf')
-    args_parser.add_argument('-g','--genome', help='path to file with reference genome in fasta format',required=False,default='/home/a_vikhorev/Data/Genome/Homo_sapiens.GRCh38.dna.toplevel.fa')
+    args_parser.add_argument('-g','--genome', help='path to file with reference genome in fasta format',required=False,default='/home/a_vikhorev/Data/DataBases/Hg38_GCA_000001405.15_BWA/GCA_000001405.15.fasta')
     args_parser.add_argument('-l','--bait_length', help='Length of the designed olignucleotide bait', required=False, default=100)
     args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation', required=False, default=0)
     args_parser.add_argument('-w','--write_intermediate', help='write intermediate results or not', required=False, default=True)
@@ -102,7 +103,9 @@ def main():
 
     check_dir(params.output, logger, 'for output files')
     check_dir(params.tmpdir, logger, 'for temporary files')
-    check_file(params.annot, logger, 'GTF file with annotation')
+
+    if not input_bed_list and not input_fasta_list:
+        check_file(params.annot, logger, 'GTF file with annotation')
 
     if input_genes_list or input_muts_list:
         with open(params.annot) as infile:
@@ -112,7 +115,8 @@ def main():
             if input_muts_list:
                 annot_for_muts = utils.prepare_annot_for_muts(input_muts_list, annot, logger)
 
-    check_file(params.genome, logger, 'FASTA file with reference genome')
+    if not input_fasta_list:
+        check_file(params.genome, logger, 'FASTA file with reference genome')
 
     # Get bed regions for input genes and/or mutations
     if input_genes_list:
@@ -129,10 +133,12 @@ def main():
                                                            params.genome_version)
         input_bed_list.extend(input_muts_bed_list)
 
-    #if input_bed_list:
-    #    input_fasta_intermed_list = rstools.get_fasta_seqs_from_bed(input_bed_list, params.genome, params.genome_version)
-    #    input_fasta_list.extend(input_fasta_intermed_list)
+    if input_bed_list:
+        input_fasta_intermed_list = gfsfb.get_fasta_seqs_from_bed(input_bed_list, params.genome, params.genome_version,
+                                                                    params.write_intermediate, params.tmpdir, logger)
+        input_fasta_list.extend(input_fasta_intermed_list)
     
+    timestamp = datetime.now()
     logger.info(f'######### Finish OligoDesigner at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
 
 if __name__ == '__main__':

@@ -165,4 +165,4 @@ testdir
 tmpdir
 .vscode*
 tests/test_results
-
+tests/test_reuslts/INPUT_regions_sequences.fasta
