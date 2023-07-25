@@ -50,7 +50,7 @@ def get_fasta_seqs_from_bed(coord_list, genome, genome_version, write_intermedia
                     chrom_seq = ''
                     flag = 0
                 chromosome = line.split('>')[1].split(' ')[0]
-                if genome_version in ['GRCh38.p14', 'GRCh37.p13']:
+                if genome_version in ['GRCh38', 'GRCh37']:
                     if chromosome.isdigit() or chromosome == 'X' or chromosome == 'Y' or chromosome == 'M':
                         chromosome = 'chr' + chromosome
                     elif chromosome in genome_versions_chromosome_dict[genome_version]:

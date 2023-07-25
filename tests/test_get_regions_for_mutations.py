@@ -63,12 +63,12 @@ def test_get_coords_for_hgvs_c(hgvsc, flank, annot, logger, answer):
 @pytest.mark.parametrize(
     "coord_list, genome_version, logger, answer",
     [
-        (['chr1\t111\t211\tA\t.\tsnp'], 'GRCh38.p14', '', ['chr1\t111\t211\tA\t.\tsnp\tchr1']),
-        (['1\t111\t211\tA\t.\tsnp'],    'GRCh38.p14', '', ['chr1\t111\t211\tA\t.\tsnp\t1']),
-        (['NC_000001.11\t111\t211\tA\t.\tsnp'], 'GRCh38.p14', '', ['chr1\t111\t211\tA\t.\tsnp\tNC_000001.11']),
-        (['NC_000001.10\t111\t211\tA\t.\tsnp'], 'GRCh37.p13', '', ['chr1\t111\t211\tA\t.\tsnp\tNC_000001.10']),
-        (['NC_000001.9\t111\t211\tA\t.\tsnp'], 'GRCh37.p13', '', []),
-        (['Z\t111\t211\tA\t.\tchr1:111A>T'],    'GRCh38.p14', '', []),
+        (['chr1\t111\t211\tA\t.\tsnp'], 'GRCh38', '', ['chr1\t111\t211\tA\t.\tsnp\tchr1']),
+        (['1\t111\t211\tA\t.\tsnp'],    'GRCh38', '', ['chr1\t111\t211\tA\t.\tsnp\t1']),
+        (['NC_000001.11\t111\t211\tA\t.\tsnp'], 'GRCh38', '', ['chr1\t111\t211\tA\t.\tsnp\tNC_000001.11']),
+        (['NC_000001.10\t111\t211\tA\t.\tsnp'], 'GRCh37', '', ['chr1\t111\t211\tA\t.\tsnp\tNC_000001.10']),
+        (['NC_000001.9\t111\t211\tA\t.\tsnp'], 'GRCh37', '', []),
+        (['Z\t111\t211\tA\t.\tchr1:111A>T'],    'GRCh38', '', []),
         (['chr1\t111\t211\tA'], 'GRC14', '', []),
     ]
 )
@@ -81,13 +81,13 @@ def test_fix_chromosome_name_and_check_coords(coord_list, genome_version, logger
 @pytest.mark.parametrize(
     "muts_list, annot, flank_length, write_intermediate, tmpdir, logger, genome_version, answer, exp",
     [
-        (['chr1\t.\t211\tA\t.\tchr1:111A>T'], {}, 10, False, "", "", 'GRCh38.p14', ['chr1\t201\t221\tA\t.\tsnp\tchr1'], does_not_raise()),
-        (['chr1:211A>T'], {}, 10, False, "", "", 'GRCh38.p14', ['chr1\t201\t221\tA\tchr1:211A>T\tsnp\tchr1'], does_not_raise()),
-        (['chr1:g.211A>T'], {}, 10, False, "", "", 'GRCh38.p14', ['chr1\t201\t221\tA\tchr1:g.211A>T\tsnp\tchr1'], does_not_raise()),
-        (['test:c.47-2_50-2insATGC'], {}, 10, False, "", "", 'GRCh38.p14', ['chr1\t45\t65\tinsATGC\ttest:c.47-2_50-2insATGC\tsnp\t1'], does_not_raise()),
-        (['test:p.47-2_50-2insATGC'], {}, 10, False, "", "", 'GRCh38.p14', [], pytest.raises(SystemExit)),
-        (['Z:211A>T'], {}, 10, False, "", "", 'GRCh38.p14', [], pytest.raises(SystemExit)),
-        (['chr1:g.211A>T'], {}, 1000, False, "", "", 'GRCh38.p14', [], pytest.raises(SystemExit))
+        (['chr1\t.\t211\tA\t.\tchr1:111A>T'], {}, 10, False, "", "", 'GRCh38', ['chr1\t201\t221\tA\t.\tsnp\tchr1'], does_not_raise()),
+        (['chr1:211A>T'], {}, 10, False, "", "", 'GRCh38', ['chr1\t201\t221\tA\tchr1:211A>T\tsnp\tchr1'], does_not_raise()),
+        (['chr1:g.211A>T'], {}, 10, False, "", "", 'GRCh38', ['chr1\t201\t221\tA\tchr1:g.211A>T\tsnp\tchr1'], does_not_raise()),
+        (['test:c.47-2_50-2insATGC'], {}, 10, False, "", "", 'GRCh38', ['chr1\t45\t65\tinsATGC\ttest:c.47-2_50-2insATGC\tsnp\t1'], does_not_raise()),
+        (['test:p.47-2_50-2insATGC'], {}, 10, False, "", "", 'GRCh38', [], pytest.raises(SystemExit)),
+        (['Z:211A>T'], {}, 10, False, "", "", 'GRCh38', [], pytest.raises(SystemExit)),
+        (['chr1:g.211A>T'], {}, 1000, False, "", "", 'GRCh38', [], pytest.raises(SystemExit))
     ]
 )
 def test_get_regions_for_muts(muts_list, annot, flank_length, write_intermediate, tmpdir, logger, genome_version, answer, exp):

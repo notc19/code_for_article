@@ -1,5 +1,5 @@
 genome_versions_chromosome_dict = {
-    'GRCh38.p14': {
+    'GRCh38': {
         'NC_000001.11': 'chr1',
         'NC_000002.12': 'chr2',
         'NC_000003.12': 'chr3',
@@ -25,7 +25,7 @@ genome_versions_chromosome_dict = {
         'NC_000023.11': 'chrX',
         'NC_000024.10': 'chrY'
     },
-    'GRCh37.p13': {
+    'GRCh37': {
         'NC_000001.10': 'chr1',
         'NC_000002.11': 'chr2',
         'NC_000003.11': 'chr3',

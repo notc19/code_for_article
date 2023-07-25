@@ -30,7 +30,7 @@ def test_prepare_annot_for_muts(annot):
 def test_prepare_annot_for_muts_full(annot, logger):
     annot_test = prepare_annot_for_muts(['Chr2:c.123G>C'], annot, '')
     muts_list = ['test.7:c.47-2_50-2insATGC']
-    answer = get_regions_for_muts(muts_list, annot_test, 10, False, "", logger, 'GRCh38.p14')
+    answer = get_regions_for_muts(muts_list, annot_test, 10, False, "", logger, 'GRCh38')
 
     assert answer == ['chr1\t45\t65\tinsATGC\ttest.7:c.47-2_50-2insATGC\tsnp\t1']
 
@@ -46,7 +46,7 @@ def test_prepare_annot_for_genes_full(annot, logger):
     input_genes_list = ["ATAD3B\t1-2,4-5\t100","test_g\texon\t0"]
 
     gene_coords_regions = get_regions_for_genes(input_genes_list, gene_dict, gene_name_dict,
-                            'exon', 50, False, '', logger, 'GRCh38.p14')
+                            'exon', 50, False, '', logger, 'GRCh38')
 
     answ = ['chr1\t1471665\t1472189\tENSG00000160072\tENSE00003889014\t1-2\t1', 'chr1\t1477174\t1477450\tENSG00000160072\tENSE00003467707\t1-2\t1',\
             'chr1\t1478949\t1479208\tENSG00000160072\tENSE00003608502\t4-5\t1', 'chr1\t1480767\t1481036\tENSG00000160072\tENSE00003474888\t4-5\t1',\

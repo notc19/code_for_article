@@ -30,5 +30,5 @@ def test_get_regions_for_genes(input_genes_list, answer, ext, logger):
     
     with ext:
         gene_coords = get_regions_for_genes(input_genes_list, annot_for_genes, gene_name_dict,
-                    'exon', 50, False, '', logger, 'GRCh38.p14')
+                    'exon', 50, False, '', logger, 'GRCh38')
         assert gene_coords == answer

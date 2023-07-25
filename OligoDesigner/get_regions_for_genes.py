@@ -61,7 +61,7 @@ def get_regions_for_genes(input_genes_list, annot_for_genes, gene_name_dict,
             logger.warning(f'WARNING! Unknown region type {gene_regions}! Skipping this gene!')
             continue
     
-    if genome_version in ['GRCh38.p14', 'GRCh37.p13']:
+    if genome_version in ['GRCh38', 'GRCh37']:
         gene_coord_list = fix_chromosome_name_and_check_coords(gene_coord_list, genome_version, logger)
 
     if not gene_coord_list:

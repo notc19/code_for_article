@@ -204,7 +204,7 @@ def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_int
         exit(1)
 
     # fix chromosome names for human genome assemblies
-    if genome_version in ['GRCh38.p14', 'GRCh37.p13']:
+    if genome_version in ['GRCh38', 'GRCh37']:
         bed_coords_list = fix_chromosome_name_and_check_coords(bed_coords_list, genome_version, logger)
 
     if not bed_coords_list:

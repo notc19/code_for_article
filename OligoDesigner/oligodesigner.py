@@ -13,6 +13,7 @@ import argparse
 import get_regions_for_mutations as grfm
 import get_regions_for_genes as grfg
 import get_fasta_seq_from_bed as gfsfb
+import download_annot_and_genome as dag
 import utils
 
 def create_logger(timestamp):
@@ -46,9 +47,13 @@ def parse_args():
     args_parser.add_argument('-l','--bait_length', help='Length of the designed olignucleotide bait', required=False, default=100)
     args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation', required=False, default=0)
     args_parser.add_argument('-w','--write_intermediate', help='write intermediate results or not', required=False, default=True)
-    args_parser.add_argument('-v','--genome_version', help='version of the reference genome', required=False, default='GRCh38.p14')
+    args_parser.add_argument('-v','--genome_version', help='version of the reference genome', required=False, default='GRCh38')
+    args_parser.add_argument('-s','--species', help='Analyzed species', required=False, default='homo_sapiens')
+    args_parser.add_argument('--annotation_release', help='release of the reference genome', required=False, default='current')
     args_parser.add_argument('-r','--gene_regions', help='Type of gene regions to use [full/exons/exons_utr]', required=False, default='exon')
     args_parser.add_argument('-j','--intron_depth', help='Depth of introns to include when only exons regions were chosen', required=False, default=50)
+    args_parser.add_argument('--download_annotation', help='Download annotation file from Ensembl or not',required=False,default=True)
+    args_parser.add_argument('--download_genome', help='Download genome file from Ensembl or not',required=False,default=True)
     
     return args_parser.parse_args()
 
@@ -104,19 +109,33 @@ def main():
     check_dir(params.output, logger, 'for output files')
     check_dir(params.tmpdir, logger, 'for temporary files')
 
-    if not input_bed_list and not input_fasta_list:
-        check_file(params.annot, logger, 'GTF file with annotation')
-
     if input_genes_list or input_muts_list:
-        with open(params.annot) as infile:
+        if not params.download_annotation:
+            check_file(params.annot, logger, 'GTF file with annotation')
+            annot_file = params.annot
+        else:
+            logger.info(f'Downloading annotation from ensembl')
+            annot_file = dag.download_from_ensembl('annotation', params.species, params.annotation_release, 
+                                               params.genome_version, params.tmpdir, logger)
+            logger.info(f'Annotation file was downloaded!')
+        with open(annot_file) as infile:
+            logger.info('Processing annotation file')
             annot = [line.strip() for line in infile.readlines() if not line.startswith('#')]
             if input_genes_list:
                 annot_for_genes, gene_name_dict = utils.prepare_annot_for_genes(annot, logger)
             if input_muts_list:
                 annot_for_muts = utils.prepare_annot_for_muts(input_muts_list, annot, logger)
+            logger.info('Annotation file was processed')
 
     if not input_fasta_list:
-        check_file(params.genome, logger, 'FASTA file with reference genome')
+        if not params.download_genome:
+            check_file(params.genome, logger, 'FASTA file with reference genome')
+            genome_file = params.genome
+        else:
+            logger.info('Downloading genome from ensembl')
+            genome_file = dag.download_from_ensembl('genome', params.species, params.annotation_release, 
+                                                    params.genome_version, params.tmpdir, logger)
+            logger.info('Genome was downloaded')
 
     # Get bed regions for input genes and/or mutations
     if input_genes_list:
@@ -134,7 +153,7 @@ def main():
         input_bed_list.extend(input_muts_bed_list)
 
     if input_bed_list:
-        input_fasta_intermed_list = gfsfb.get_fasta_seqs_from_bed(input_bed_list, params.genome, params.genome_version,
+        input_fasta_intermed_list = gfsfb.get_fasta_seqs_from_bed(input_bed_list, genome_file, params.genome_version,
                                                                     params.write_intermediate, params.tmpdir, logger)
         input_fasta_list.extend(input_fasta_intermed_list)
     
