@@ -52,3 +52,10 @@ genome_versions_chromosome_dict = {
         'NC_000024.9': 'chrY'
     }
 }
+
+rev_dict = {
+    'A': 'T',
+    'T': 'A',
+    'G': 'C',
+    'C': 'G'
+}

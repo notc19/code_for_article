@@ -11,18 +11,25 @@ def prepare_annot_for_muts(input_muts_list, annot, logger):
     #logger.info('Preparing annotation file for mutations')
     transcript_dict = {}
     for i in range(len(annot)):
+        strand = annot[i].split()[6]
+        #if strand == '+':
+        #    continue
         if annot[i].split('\t')[2] == 'transcript':
             transcript_id = annot[i].split('";')[2].split('"')[1] + '.' + annot[i].split('";')[3].split('"')[1]
             transcript_chr = annot[i].split('\t')[0]
             exon_list = []
             k = 1
+            start_codon_coord = 0
             while True:
                 if (i + k == (len(annot))) or (annot[i+k].split('\t')[2] == 'transcript'):
                     break
                 elif annot[i+k].split('\t')[2] == 'exon':
                     exon_list.append([annot[i+k].split('\t')[3], annot[i+k].split('\t')[4]])
+                elif annot[i+k].split('\t')[2] == 'start_codon':
+                    start_codon_coord = annot[i+k].split('\t')[3]
                 k += 1
-            transcript_dict[transcript_id] = [transcript_chr, exon_list]
+            if start_codon_coord:
+                transcript_dict[transcript_id] = [transcript_chr, exon_list, start_codon_coord, strand]
                 
     return transcript_dict
 
@@ -59,10 +66,10 @@ def prepare_annot_for_genes(annot, logger):
     return gene_dict, gene_name_dict
 
 if __name__ == '__main__':
-    test_gtf = '/home/a_vikhorev/OligoDesigner/tests/FileTest_annot.gtf' #'/home/a_vikhorev/Data/Genome/Homo_sapiens.GRCh38.109.gtf'
+    test_gtf = './tests/FileTest_annot.gtf'
     with open(test_gtf) as infile:
         annot = [line.strip() for line in infile.readlines() if not line.startswith('#')]
 
-    d,_ = prepare_annot_for_genes(annot, '') #/home/a_vikhorev/OligoDesigner/tests/test_annot.gtf
-    print(d)
-    print(_)
+    annot_test = prepare_annot_for_muts(['Chr2:c.123G>C'], annot, '')
+
+    print(annot_test)

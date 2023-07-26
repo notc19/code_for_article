@@ -36,8 +36,8 @@ def parse_args():
     This is the docstring!
     """
     args_parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
-    args_parser.add_argument('-i','--input_genes',help='path to input file with genes',type=str,required=False, default='tests/FileTest_input_genes')
-    args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',type=str,required=False, default='tests/FileTest_input_muts') #tests/FileTest_input_muts_hgvs
+    args_parser.add_argument('-i','--input_genes',help='path to input file with genes',type=str,required=False, default='') #tests/FileTest_input_genes
+    args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',type=str,required=False, default='tests/FileTest_input_muts_hgvs') #tests/FileTest_input_muts_hgvs
     args_parser.add_argument('-b','--input_bed', help='path to input file with tartget regions in bed format',type=str,required=False, default=False)
     args_parser.add_argument('-f','--input_fasta', help='path to input file with tartget sequences in fasta format',type=str,required=False, default=False)
     args_parser.add_argument('-o','--output', help='path of output folder',type=str,required=False, default="./tests/test_reuslts")
@@ -45,15 +45,15 @@ def parse_args():
     args_parser.add_argument('-a','--annot', help='path to file with genome annotation in GTF format',required=False,default='/home/a_vikhorev/Data/Genome/Homo_sapiens.GRCh38.109.gtf')
     args_parser.add_argument('-g','--genome', help='path to file with reference genome in fasta format',required=False,default='/home/a_vikhorev/Data/DataBases/Hg38_GCA_000001405.15_BWA/GCA_000001405.15.fasta')
     args_parser.add_argument('-l','--bait_length', help='Length of the designed olignucleotide bait', required=False, default=100)
-    args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation', required=False, default=0)
+    args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation', required=False, default=100)
     args_parser.add_argument('-w','--write_intermediate', help='write intermediate results or not', required=False, default=True)
     args_parser.add_argument('-v','--genome_version', help='version of the reference genome', required=False, default='GRCh38')
     args_parser.add_argument('-s','--species', help='Analyzed species', required=False, default='homo_sapiens')
     args_parser.add_argument('--annotation_release', help='release of the reference genome', required=False, default='current')
     args_parser.add_argument('-r','--gene_regions', help='Type of gene regions to use [full/exons/exons_utr]', required=False, default='exon')
     args_parser.add_argument('-j','--intron_depth', help='Depth of introns to include when only exons regions were chosen', required=False, default=50)
-    args_parser.add_argument('--download_annotation', help='Download annotation file from Ensembl or not',required=False,default=True)
-    args_parser.add_argument('--download_genome', help='Download genome file from Ensembl or not',required=False,default=True)
+    args_parser.add_argument('--download_annotation', help='Download annotation file from Ensembl or not',required=False,default=False)
+    args_parser.add_argument('--download_genome', help='Download genome file from Ensembl or not',required=False,default=False)
     
     return args_parser.parse_args()
 
@@ -97,7 +97,7 @@ def main():
     logger = create_logger(timestamp)
     logger.info(f'######### Start OligoDesigner at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
 
-    # Reads params
+    # Read params
     logger.info('The OligoDesigner was launched with the following parameters:')
     params = parse_args()
 

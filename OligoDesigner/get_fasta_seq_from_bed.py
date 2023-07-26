@@ -18,7 +18,7 @@ def create_fasta_sequences(coords_list:list, chromosome, logger):
         if coords[5] == 'snp':
             if (coords[3].upper().count('A') + coords[3].upper().count('T') + coords[3].upper().count('G') + coords[3].upper().count('C')) == len(coords[3]):
                 if not (allele:=sequence[int(len(sequence)/2)]) == coords[3]:
-                    logger.warning(f'For snp {coords[4]} ref allele in snp description ({coords[3]}) not equal to allele in provided reference genome ({allele}). SKIPPING this region!')
+                    logger.warning(f'For snp {coords[4]} ref allele in snp ({coords[3]}) not equal to allele in provided reference genome ({allele}) in position {int(start + (len(sequence)/2))}. SKIPPING this region!')
                     continue
         sequence_list.extend([name, sequence])
 

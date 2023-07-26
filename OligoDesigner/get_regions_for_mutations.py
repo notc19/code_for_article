@@ -1,4 +1,4 @@
-from constants import genome_versions_chromosome_dict
+from constants import genome_versions_chromosome_dict, rev_dict
 
 def get_coords_for_vcf(vcf:list, flank_length:int) -> str:
     """
@@ -27,7 +27,7 @@ def get_coords_for_hgvs_g(hgvsg:list, flank_length:int) -> str:
 
     return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsg) + '\t' + 'snp'
 
-def get_coords_for_hgvs_c_intr(pos_and_nucl, exons, sign):
+def get_pos_c_pos_m_ref(pos_and_nucl, sign):
     pos_c = int(pos_and_nucl.split(sign)[0])
     j = len(['_' for c in range(len(pos_and_nucl.split(sign)[1])) if pos_and_nucl.split(sign)[1][c].isdigit()]) # index of the last digit +1
     ref = pos_and_nucl.split(sign)[1][j:].split('>')[0] if 'del' not in pos_and_nucl and 'ins' not in pos_and_nucl \
@@ -36,32 +36,40 @@ def get_coords_for_hgvs_c_intr(pos_and_nucl, exons, sign):
     pos_m = int(pos_and_nucl.split(sign)[1][:j])
     if '_' in str(pos_and_nucl):
         pos_c = int(str(pos_and_nucl).split('_')[0].split(sign)[0])
-        pos_m = int(str(pos_and_nucl).split('_')[0].split(sign)[1])
+        pos_m = int(str(pos_and_nucl).split('_')[0].split(sign)[1][:j])
+    
+    return pos_c, pos_m, ref
+
+def get_pos(strand, start_codon_coord, exons, pos_c, ref):
     i = 0
-    while True:
-        if pos_c > (int(exons[i][1]) - int(exons[i][0])):
-            pos_c -= (int(exons[i][1]) - int(exons[i][0]))
-            i += 1
-        elif pos_c <= (int(exons[i][1]) - int(exons[i][0])):
-            pos = int(exons[i][0]) + pos_c - pos_m if sign == '-' else int(exons[i][0]) + pos_c + pos_m
-            break
-    return pos, ref
-
-def get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, sign, orient):
-    pos_c = int(pos_and_nucl[1:].split(sign)[0])
-    j = len(['_' for c in range(len(pos_and_nucl[1:].split(sign)[1])) if pos_and_nucl[1:].split(sign)[1][c].isdigit()]) # index of the last digit +1
-    ref = pos_and_nucl[1:].split(sign)[1][j:].split('>')[0] if 'del' not in pos_and_nucl[1:] and 'ins' not in pos_and_nucl[1:] \
-        else 'del'+pos_and_nucl[1:].split('del')[1] if 'ins' not in pos_and_nucl[1:] \
-        else 'ins'+pos_and_nucl[1:].split('ins')[1]
-    pos_m = int(pos_and_nucl[1:].split(sign)[1][:j])
-
-    if '_' in str(pos_and_nucl[1:]):
-        pos_c = int(str(pos_and_nucl[1:]).split('_')[0].split(sign)[0])
-        pos_m = int(str(pos_and_nucl[1:]).split('_')[0].split(sign)[1])
-        print(pos_c, pos_m)
-    pos_m *= -1 if sign == '-' else 1
-    pos = int(exons[-1][1]) + pos_c + pos_m if orient == '*' else int(exons[0][0]) - pos_c + pos_m
-    print(pos_c, pos_m, pos)
+    if strand == '+':
+        while True:
+            if int(exons[i][1]) < start_codon_coord:
+                i += 1
+                continue
+            elif int(exons[i][0]) <= start_codon_coord <= int(exons[i][1]):
+                exons[i][0] = start_codon_coord
+            if pos_c > (int(exons[i][1]) - int(exons[i][0]) + 1):
+                pos_c -= (int(exons[i][1]) - int(exons[i][0]) + 1)
+                i += 1
+            elif pos_c <= (int(exons[i][1]) - int(exons[i][0]) + 1):
+                pos = int(exons[i][0]) + pos_c + 2
+                break 
+    elif strand == '-':
+        exons = [[x[1],x[0]] for x in exons]
+        ref = rev_dict[ref] if 'del' not in ref and 'ins' not in ref else ref
+        while True:
+            if int(exons[i][1]) > start_codon_coord:
+                i += 1
+                continue
+            elif int(exons[i][1]) <= start_codon_coord <= int(exons[i][0]):
+                exons[i][0] = start_codon_coord
+            if pos_c > (int(exons[i][0]) - int(exons[i][1]) + 1):
+                pos_c -= (int(exons[i][0]) - int(exons[i][1]) + 1)
+                i += 1
+            elif pos_c <= (int(exons[i][0]) - int(exons[i][1]) + 1):
+                pos = int(exons[i][0]) - pos_c
+                break
     return pos, ref
 
 def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
@@ -70,31 +78,29 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
         trans = hgvsc[0]
         chrom = annot[trans][0]
         exons = annot[trans][1]
+        start_codon_coord = int(annot[trans][2])
+        strand = annot[trans][3]
         pos_and_nucl = hgvsc[1].split('.')[1]
-
         if pos_and_nucl[0].isdigit():
             if not '-' in pos_and_nucl and not '+' in pos_and_nucl:
                 j = len(['_' for c in range(len(pos_and_nucl)) if pos_and_nucl[c].isdigit()]) # index of the last digit +1
                 ref = pos_and_nucl[j:].split('>')[0] if 'del' not in pos_and_nucl and 'ins' not in pos_and_nucl \
                     else 'del'+pos_and_nucl[1:].split('del')[1] if 'ins' not in pos_and_nucl \
                     else 'ins'+pos_and_nucl.split('ins')[1]
-                pos_c = int(pos_and_nucl[:j])
+                pos_c = int(pos_and_nucl[:j]) - 3
                 if '_' in str(pos_and_nucl[:j]):
-                    pos_c = int(str(pos_and_nucl[:j]).split('_')[0])
-                i = 0
-                while True:
-                    if pos_c > (int(exons[i][1]) - int(exons[i][0])):
-                        pos_c -= (int(exons[i][1]) - int(exons[i][0]))
-                        i += 1
-                    elif pos_c <= (int(exons[i][1]) - int(exons[i][0])):
-                        pos = int(exons[i][0]) + pos_c
-                        break
-                    
+                    pos_c = int(str(pos_and_nucl[:j]).split('_')[0]) - 3
+                pos, ref = get_pos(strand, start_codon_coord, exons, pos_c, ref)
+
             elif '-' in pos_and_nucl:
-                pos, ref = get_coords_for_hgvs_c_intr(pos_and_nucl, exons, '-')
+                pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl, '-')
+                pos, ref = get_pos(strand, start_codon_coord, exons, pos_c, ref)
+                pos -= pos_m + 2 #TODO: Пофиксить координаты
 
             elif '+' in pos_and_nucl:
-                pos, ref = get_coords_for_hgvs_c_intr(pos_and_nucl, exons, '+')
+                pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl, '+')
+                pos, ref = get_pos(strand, start_codon_coord, exons, pos_c, ref)
+                pos += pos_m #TODO: Пофиксить координаты
 
         elif pos_and_nucl.startswith('-'):
             if not '-' in pos_and_nucl[1:] and not '+' in pos_and_nucl[1:]:
@@ -106,11 +112,13 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
                     pos_c = int(str(pos_and_nucl[1:]).split('_')[0])
                 else:
                     pos_c = int(pos_and_nucl[1:j+1])
-                pos = int(exons[0][0]) - pos_c
+                pos = int(exons[0][0]) - pos_c if strand == '+' else exons[0][1] + pos_c
             elif '-' in pos_and_nucl[1:]:
-                pos, ref = get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, '-', '-')
+                pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl[1:], '-')
+                pos = int(exons[0][0]) - pos_c - pos_m if strand == '+' else exons[0][1] + pos_c - pos_m
             elif '+' in pos_and_nucl[1:]:
-                pos, ref = get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, '+', '-')
+                pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl[1:], '+')
+                pos = int(exons[0][0]) - pos_c + pos_m if strand == '+' else exons[0][1] + pos_c - pos_m
 
         elif pos_and_nucl.startswith('*'):
             if not '-' in pos_and_nucl[1:] and not '+' in pos_and_nucl[1:]:
@@ -122,11 +130,13 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
                     pos_c = int(str(pos_and_nucl[1:]).split('_')[0])
                 else:
                     pos_c = int(pos_and_nucl[1:j+1])
-                pos = int(exons[-1][1]) + pos_c
+                pos = int(exons[-1][1]) + pos_c if strand == '+' else exons[-1][0] - pos_c
             elif '-' in pos_and_nucl[1:]:
-                pos, ref = get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, '-', '*')
+                pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl[1:], '-')
+                pos = int(exons[-1][1]) + pos_c - pos_m if strand == '+' else exons[-1][0] - pos_c - pos_m
             elif '+' in pos_and_nucl[1:]:
-                pos, ref = get_coords_for_hgvs_c_utr_intr(pos_and_nucl, exons, '+', '*')
+                pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl[1:], '+')
+                pos = int(exons[-1][1]) + pos_c + pos_m if strand == '+' else exons[-1][0] - pos_c + pos_m
         else:
             logger.warning(f'This format of HGVS mutation ({trans +":"+hgvsc[1]}) is not supproted yet. Skipping this variant')
             return None
@@ -170,8 +180,16 @@ def fix_chromosome_name_and_check_coords(coord_list:list, genome_version:str, lo
     return fixed_coord_list
 
 def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_intermediate:bool, tmpdir:str, \
-                         logger, genome_version:str):
+                         logger, genome_version:str) -> list: 
     """
+    Эта функция выполняет поиск регионов, на которые будут подбираться олигонуклеотиды, для поданных на вход мутаций.
+    :param muts_list: Список мутаций, которые были поданы на вход (vcf, hgvsg или hgvsc формат)
+    :params annot: аннотация генома
+    :param flank_length: длина фланка вокруг мутации, который будет включен в регион
+    :param write_intermediate: Сохранять или нет промежуточный файл с регионами
+    :param tmpdir: Путь к промежуточной директории (должна быть создана)
+    :param logger: Объект класса logger, который будет сохранять логи
+    :param genomve_version: Версия генома. Используется, чтобы фиксить номера хромосом при необходимости.
     """
     bed_coords_list = []
     vcf_counter, hgvs_counter = 0, 0
@@ -203,7 +221,7 @@ def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_int
         logger.error('ERROR! Check input files! Exiting...')
         exit(1)
 
-    # fix chromosome names for human genome assemblies
+    # fix chromosome names for human genome assemblies if needed
     if genome_version in ['GRCh38', 'GRCh37']:
         bed_coords_list = fix_chromosome_name_and_check_coords(bed_coords_list, genome_version, logger)
 
@@ -225,8 +243,8 @@ def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_int
 
 
 if __name__ == '__main__':
-    # Simple test
-    hgvsc = ['test', 'c.*10+3A>G'] 
-    flank_length = 100
-    annot = {'test':['1', [[10,90],[100,200],[400,500]]]}
+    annot = {'test':['1', [[10,90],[100,200],[400,500]], 12, '+']}
+    hgvsc = ['test','c.47A>T']
+    flank_length = 10
+   
     print(get_coords_for_hgvs_c(hgvsc, flank_length, annot, ""))

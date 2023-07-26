@@ -33,11 +33,11 @@ def test_get_coords_for_hgvs_g(hgvsg, flank, answer, exp):
 @pytest.mark.parametrize(
         "hgvsc, flank, annot, logger, answer",
     [
-        (['test','c.47A>T'], 10, {}, "", '1\t47\t67\tA\ttest:c.47A>T\tsnp'),
-        (['test','c.47-5A>T'], 10, {}, "", '1\t42\t62\tA\ttest:c.47-5A>T\tsnp'),
-        (['test','c.47_48delA'], 10, {}, "", '1\t47\t67\tdelA\ttest:c.47_48delA\tsnp'),
-        (['test','c.47_50insATGC'], 10, {}, "", '1\t47\t67\tinsATGC\ttest:c.47_50insATGC\tsnp'),
-        (['test','c.47-2_50-2insATGC'], 10, {}, "", '1\t45\t65\tinsATGC\ttest:c.47-2_50-2insATGC\tsnp'),
+        (['test','c.47A>T'], 10, {}, "", '1\t48\t68\tA\ttest:c.47A>T\tsnp'),
+        (['test','c.47-5A>T'], 10, {}, "", '1\t44\t64\tA\ttest:c.47-5A>T\tsnp'),
+        (['test','c.47_48delA'], 10, {}, "", '1\t48\t68\tdelA\ttest:c.47_48delA\tsnp'),
+        (['test','c.47_50insATGC'], 10, {}, "", '1\t48\t68\tinsATGC\ttest:c.47_50insATGC\tsnp'),
+        (['test','c.47-2_50-2insATGC'], 10, {}, "", '1\t47\t67\tinsATGC\ttest:c.47-2_50-2insATGC\tsnp'),
         (['test','c.-2A>G'], 5, {}, "", '1\t3\t13\tA\ttest:c.-2A>G\tsnp'),
         (['test','c.-2_3insAT'], 5, {}, "", '1\t3\t13\tinsAT\ttest:c.-2_3insAT\tsnp'),
         (['test','c.-2_3delAT'], 5, {}, "", '1\t3\t13\tdelAT\ttest:c.-2_3delAT\tsnp'),
@@ -56,7 +56,7 @@ def test_get_coords_for_hgvs_g(hgvsg, flank, answer, exp):
 def test_get_coords_for_hgvs_c(hgvsc, flank, annot, logger, answer):
     logger = logging.getLogger()
     logger.setLevel(logging.CRITICAL)
-    annot = {'test':['1', [[10,90],[100,200],[400,500]]]}
+    annot = {'test':['1', [[10,90],[100,200],[400,500]], 12, '+']}
     
     assert get_coords_for_hgvs_c(hgvsc, flank, annot, logger) == answer
 
@@ -84,7 +84,7 @@ def test_fix_chromosome_name_and_check_coords(coord_list, genome_version, logger
         (['chr1\t.\t211\tA\t.\tchr1:111A>T'], {}, 10, False, "", "", 'GRCh38', ['chr1\t201\t221\tA\t.\tsnp\tchr1'], does_not_raise()),
         (['chr1:211A>T'], {}, 10, False, "", "", 'GRCh38', ['chr1\t201\t221\tA\tchr1:211A>T\tsnp\tchr1'], does_not_raise()),
         (['chr1:g.211A>T'], {}, 10, False, "", "", 'GRCh38', ['chr1\t201\t221\tA\tchr1:g.211A>T\tsnp\tchr1'], does_not_raise()),
-        (['test:c.47-2_50-2insATGC'], {}, 10, False, "", "", 'GRCh38', ['chr1\t45\t65\tinsATGC\ttest:c.47-2_50-2insATGC\tsnp\t1'], does_not_raise()),
+        (['test:c.47-2_50-2insATGC'], {}, 10, False, "", "", 'GRCh38', ['chr1\t47\t67\tinsATGC\ttest:c.47-2_50-2insATGC\tsnp\t1'], does_not_raise()),
         (['test:p.47-2_50-2insATGC'], {}, 10, False, "", "", 'GRCh38', [], pytest.raises(SystemExit)),
         (['Z:211A>T'], {}, 10, False, "", "", 'GRCh38', [], pytest.raises(SystemExit)),
         (['chr1:g.211A>T'], {}, 1000, False, "", "", 'GRCh38', [], pytest.raises(SystemExit))
@@ -94,7 +94,7 @@ def test_get_regions_for_muts(muts_list, annot, flank_length, write_intermediate
     logger = logging.getLogger()
     logger.setLevel(logging.CRITICAL)
 
-    annot = {'test':['1', [[10,90],[100,200],[400,500]]]}
+    annot = {'test':['1', [[10,90],[100,200],[400,500]], 12, '+']}
 
     with exp:
         assert get_regions_for_muts(muts_list, annot, flank_length, write_intermediate, tmpdir, logger, genome_version) \
