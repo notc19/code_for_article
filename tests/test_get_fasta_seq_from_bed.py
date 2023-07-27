@@ -7,7 +7,7 @@ import logging
 from OligoDesigner.utils import *
 from OligoDesigner.get_regions_for_mutations import *
 from OligoDesigner.get_regions_for_genes import *
-from OligoDesigner.get_fasta_seq_from_bed import *
+from OligoDesigner.get_sequences_from_bed import *
 from OligoDesigner.constants import genome_versions_chromosome_dict
 
 @pytest.fixture

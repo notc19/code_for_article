@@ -17,7 +17,7 @@ from Bio.SeqRecord import SeqRecord
 
 import get_regions_for_mutations as grfm
 import get_regions_for_genes as grfg
-import get_fasta_seq_from_bed as gfsfb
+import get_sequences_from_bed as gfsfb
 import download_annot_and_genome as dag
 import utils
 
