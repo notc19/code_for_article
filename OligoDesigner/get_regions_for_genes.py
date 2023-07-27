@@ -1,8 +1,25 @@
+import logging
+from pathlib import Path
+
 from constants import genome_versions_chromosome_dict
 from get_regions_for_mutations import fix_chromosome_name_and_check_coords
 
-def get_regions_for_genes(input_genes_list, annot_for_genes, gene_name_dict,
-                          gene_regions, intron_depth, write_intermediate, tmpdir, logger, genome_version):
+def get_regions_for_genes(input_genes_list:list, annot_for_genes:dict, gene_name_dict:dict,
+                          gene_regions:str, intron_depth:int, write_intermediate:bool, tmpdir:Path, 
+                          logger:logging, genome_version:str) -> list:
+    """
+    Эта функция находит геномные координаты для каждого гена в инпуте (учитывая необходимые регионы и фланки)
+    :param input_genes_list: Список генов, для которых необходимо найти координаты
+    :param annot_for_genes: Словарь с аннотацией генов
+    :param gene_name_dict: Словарь с соответствием названий и идентификаторов генов
+    :param gene_regions: Какой тип регионов по умолчанию выписывать для каждого гена (exons/exons_utr/full)
+    :param intron_depth: Какую глубину интрона по умолчанию включать в регион для каждого гена
+    :param write_intermediate: Сохранять или нет промежуточный файл с регионами в формате bed
+    :param tmpdir: Объект Path с путем до папки с промежуточными результатами
+    :param logger: Объект класса logging
+    :param genome_version: Версия генома (нужна для того, чтобы фиксить названия хромосом для человека)
+    :return: Возвращает список регионов в формате bed
+    """
     gene_coord_list = []
 
     for gene in input_genes_list:
@@ -71,8 +88,8 @@ def get_regions_for_genes(input_genes_list, annot_for_genes, gene_name_dict,
     ### TODO: Merge intersecting regions and drop nested regions!
 
     if write_intermediate:
-        with open(tmpdir+'/INPUT_coords_for_genes.bed', 'w') as outfile:
-            logger.info(f"Coordinates for input genes were written in {tmpdir+'/INPUT_coords_for_genes.bed'} file")
+        with open(tmpdir/'INPUT_coords_for_genes.bed', 'w') as outfile:
+            logger.info(f"Coordinates for input genes were written in {tmpdir/'INPUT_coords_for_genes.bed'} file")
             outfile.write('\n'.join(gene_coord_list))
 
     logger.info(f'{len(gene_coord_list)} coordinates were found for {len(input_genes_list)} genes')

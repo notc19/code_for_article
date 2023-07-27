@@ -1,7 +1,14 @@
+import logging
+from pathlib import Path
+
 from constants import genome_versions_chromosome_dict, rev_dict
 
 def get_coords_for_vcf(vcf:list, flank_length:int) -> str:
     """
+    Эта функция принимает мутацию в формате vcf и выписывает координаты региона, фланкирующего мутацию, в формате bed
+    :param vcf: список, сделанный из мутации в формате vcf (при помощи split())
+    :param flank_length: длина участка, фланкирующего мутацию
+    :return: строка с регионом, фланкирующем мутацию, в формате bed
     """
     chrom = vcf[0]
     rsid = vcf[1]
@@ -15,6 +22,10 @@ def get_coords_for_vcf(vcf:list, flank_length:int) -> str:
 
 def get_coords_for_hgvs_g(hgvsg:list, flank_length:int) -> str:
     """
+    Эта функция принимает мутацию в формате hgvsg и выписывает координаты региона, фланкирующего мутацию, в формате bed
+    :param hgvsg: список, сделанный из мутации в формате hgvsg (при помощи split(':'))
+    :param flank_length: длина участка, фланкирующего мутацию
+    :return: строка с регионом, фланкирующем мутацию, в формате bed
     """
     chrom = hgvsg[0]
     pos_and_nucl = hgvsg[1].split('.')[1] if '.' in hgvsg[1] else hgvsg[1]
@@ -27,7 +38,13 @@ def get_coords_for_hgvs_g(hgvsg:list, flank_length:int) -> str:
 
     return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsg) + '\t' + 'snp'
 
-def get_pos_c_pos_m_ref(pos_and_nucl, sign):
+def get_pos_c_pos_m_ref(pos_and_nucl:str, sign:str) -> [int, int, str]:
+    """
+    Эта функция извлекает позицию, смещение позиции и референсный нуклеотид из мутации в формате hgvsc (hgvsc.split()[1])
+    :param pos_and_nucl: часть мутации в формате hgvsc, содержащая позиции и референсный нуклеотид
+    :param sign: знак, определяющий позицию в интроне относительно экзона (+ или -)
+    :return: Список с координатой в экзоне (pos_c), смещением координаты в интрон (pos_m), референсным нуклеотидом (ref)
+    """
     pos_c = int(pos_and_nucl.split(sign)[0])
     j = len(['_' for c in range(len(pos_and_nucl.split(sign)[1])) if pos_and_nucl.split(sign)[1][c].isdigit()]) # index of the last digit +1
     ref = pos_and_nucl.split(sign)[1][j:].split('>')[0] if 'del' not in pos_and_nucl and 'ins' not in pos_and_nucl \
@@ -40,7 +57,16 @@ def get_pos_c_pos_m_ref(pos_and_nucl, sign):
     
     return pos_c, pos_m, ref
 
-def get_pos(strand, start_codon_coord, exons, pos_c, ref):
+def get_pos(strand:str, start_codon_coord:int, exons:list, pos_c:int, ref:str) -> [int, str]:
+    """
+    Эта функция находит координату в геноме для мутации в формате hgvsc
+    :param strand: цепь, на которой находится мутация
+    :param start_codon_coord: координата старт-кодона
+    :param exons: список с экзонами гена
+    :param pos_c: позиция в экзоне
+    :param ref: референсный нуклеотид
+    :return: Возвращает позицию в геноме и референсный нуклеотид
+    """
     i = 0
     if strand == '+':
         while True:
@@ -72,8 +98,15 @@ def get_pos(strand, start_codon_coord, exons, pos_c, ref):
                 break
     return pos, ref
 
-def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
-    
+def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot:dict, logger:logging) -> str:
+    """
+    Эта функция принимает мутацию в формате hgvsc и выписывает координаты региона, фланкирующего мутацию, в формате bed
+    :param hgvsc: список, сделанный из мутации в формате hgvsc (при помощи split(':'))
+    :param flank_length: длина участка, фланкирующего мутацию
+    :param annot: словарь с аннотацией генома {транскрипт: [хромосома, [экзоны], стар_кодон, цепь]}
+    :param logger: Объект класса logging
+    :return: строка с регионом, фланкирующем мутацию, в формате bed
+    """
     if hgvsc[0] in annot:
         trans = hgvsc[0]
         chrom = annot[trans][0]
@@ -95,12 +128,12 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
             elif '-' in pos_and_nucl:
                 pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl, '-')
                 pos, ref = get_pos(strand, start_codon_coord, exons, pos_c, ref)
-                pos -= pos_m + 2 #TODO: Пофиксить координаты
+                pos -= pos_m + 2 #TODO: Пофиксить координаты (пока что точность +- несколько нуклеотидов)
 
             elif '+' in pos_and_nucl:
                 pos_c, pos_m, ref = get_pos_c_pos_m_ref(pos_and_nucl, '+')
                 pos, ref = get_pos(strand, start_codon_coord, exons, pos_c, ref)
-                pos += pos_m #TODO: Пофиксить координаты
+                pos += pos_m #TODO: Пофиксить координаты (пока что точность +- несколько нуклеотидов)
 
         elif pos_and_nucl.startswith('-'):
             if not '-' in pos_and_nucl[1:] and not '+' in pos_and_nucl[1:]:
@@ -149,8 +182,14 @@ def get_coords_for_hgvs_c(hgvsc:str, flank_length:int, annot, logger):
 
     return chrom + '\t' + str(start) + '\t' + str(end) + '\t' + ref + '\t' + ':'.join(hgvsc) + '\t' + 'snp'
 
-def fix_chromosome_name_and_check_coords(coord_list:list, genome_version:str, logger) -> list:
+def fix_chromosome_name_and_check_coords(coord_list:list, genome_version:str, logger:logging) -> list:
     """
+    Эта функция проверяет список регионов и фиксит при необходимости названия хромосом дял человека
+    (приводит все хромосомы к названию типа chr1)
+    :param coord_list: Список координат регионов, фланкирующих мутации
+    :param genome_version: Версия генома (GRCh38/37)
+    :param logger: Объект класса logging
+    :return: Исправленный и проверенный список с координатами в формате bed
     """
     fixed_coord_list = []
     for coord in coord_list:
@@ -179,8 +218,8 @@ def fix_chromosome_name_and_check_coords(coord_list:list, genome_version:str, lo
     
     return fixed_coord_list
 
-def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_intermediate:bool, tmpdir:str, \
-                         logger, genome_version:str) -> list: 
+def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_intermediate:bool, tmpdir:Path,
+                         logger:logging, genome_version:str) -> list: 
     """
     Эта функция выполняет поиск регионов, на которые будут подбираться олигонуклеотиды, для поданных на вход мутаций.
     :param muts_list: Список мутаций, которые были поданы на вход (vcf, hgvsg или hgvsc формат)
@@ -190,6 +229,7 @@ def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_int
     :param tmpdir: Путь к промежуточной директории (должна быть создана)
     :param logger: Объект класса logger, который будет сохранять логи
     :param genomve_version: Версия генома. Используется, чтобы фиксить номера хромосом при необходимости.
+    :return: Список регионов для мутаций в формате bed
     """
     bed_coords_list = []
     vcf_counter, hgvs_counter = 0, 0
@@ -235,8 +275,8 @@ def get_regions_for_muts(muts_list:list, annot:dict, flank_length:int, write_int
         logger.warning(f'Too little input mutations have coordinates in provided genome assembly! Please check if you use right genome assmbly')
 
     if write_intermediate:
-        with open(tmpdir+'/INPUT_coords_for_mutations.bed', 'w') as outfile:
-            logger.info(f"Coordinates for input mutations were written in {tmpdir+'/INPUT_coords_for_mutations.bed'} file")
+        with open(tmpdir/'INPUT_coords_for_mutations.bed', 'w') as outfile:
+            logger.info(f"Coordinates for input mutations were written in {tmpdir/'INPUT_coords_for_mutations.bed'} file")
             outfile.write('\n'.join(bed_coords_list))
 
     return bed_coords_list

@@ -1,7 +1,20 @@
+import logging
+from pathlib import Path
+
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio import SeqIO
+
 from constants import genome_versions_chromosome_dict
 
-def create_fasta_sequences(coords_list:list, chromosome, logger):
-    
+def create_fasta_sequences(coords_list:list, chromosome: str, logger:logging) -> list[SeqRecord]:
+    """
+    Эта функция создает объект SeqRecord с последовательностью региона.
+    :param coords_list: список координат с данной хромосомы, для которых будет найдена последовательность
+    :param chromosome: последовательность хромосомы в одну строку
+    :param logger: объект класса logging
+    :return: список объектов класса SeqRecord
+    """
     sequence_list = []
     for coords in coords_list:
         coords = coords.split()
@@ -9,23 +22,39 @@ def create_fasta_sequences(coords_list:list, chromosome, logger):
         end = int(coords[2])
         if len(coords) == 7:
             if coords[5] == 'snp':
-                name = f'>SNP chrom:{coords[0]} start:{coords[1]} end:{coords[2]} ref_allele:{coords[3]} snp_id:{coords[4]}'
+                description = f'SNP chrom:{coords[0]} start:{coords[1]} end:{coords[2]} ref_allele:{coords[3]} snp_id:{coords[4]}'
             else:
-                name = f'>Region chrom:{coords[0]} start:{start} end:{end} gene:{coords[3]} exon:{coords[4]}'
+                description = f'Region chrom:{coords[0]} start:{start} end:{end} gene:{coords[3]} exon:{coords[4]}'
         else:
-            name = f'{coords}'
+            description = f'{coords}'
         sequence = chromosome[start-1:end]
         if coords[5] == 'snp':
-            if (coords[3].upper().count('A') + coords[3].upper().count('T') + coords[3].upper().count('G') + coords[3].upper().count('C')) == len(coords[3]):
+            if (coords[3].upper().count('A') + coords[3].upper().count('T') + coords[3].upper().count('G') \
+                + coords[3].upper().count('C')) == len(coords[3]):
                 if not (allele:=sequence[int(len(sequence)/2)]) == coords[3]:
                     logger.warning(f'For snp {coords[4]} ref allele in snp ({coords[3]}) not equal to allele in provided reference genome ({allele}) in position {int(start + (len(sequence)/2))}. SKIPPING this region!')
                     continue
-        sequence_list.extend([name, sequence])
+        record = SeqRecord(
+            Seq(sequence),
+            id=coords[4],
+            name='snp' if coords[5] == 'snp' else coords[3],
+            description=description
+        )
+        sequence_list.append(record)
 
     return sequence_list
 
-def get_fasta_seqs_from_bed(coord_list, genome, genome_version, write_intermediate, tmpdir, logger):
+def get_fasta_seqs_from_bed(coord_list:list, genome:Path, genome_version:str, write_intermediate:bool, 
+                            tmpdir:Path, logger:logging) -> list[SeqRecord]:
     """
+    Эта функция создает fasta последовательности для поданных на вход регионов.
+    :param coord_list: Список координат, для которых нужно найти последовательности
+    :param genome: путь к файлу с геномом
+    :genome_version: версия генома. Нужна для только, чтобы фиксить названия хромосом в геноме человека
+    :write intermediate: Сохранять ли файл с последовательностями
+    :tmpdir: Директория, в которую будет сохранен файл с последовательностями
+    :logger: Объект класса logging
+    :return: Список с последовательностями в виде объекта класса SeqRecord
     """
     chromosomes = list(set([i.split()[0] for i in coord_list]))
     chrom_coord_dict = {}
@@ -64,9 +93,9 @@ def get_fasta_seqs_from_bed(coord_list, genome, genome_version, write_intermedia
                 chrom_seq += line
             
     if write_intermediate:
-        with open(tmpdir+'/INPUT_regions_sequences.fasta', 'w') as outfile:
-            logger.info(f"Sequences for input regions were written in {tmpdir+'/INPUT_regions_sequences.bed'} file")
-            outfile.write('\n'.join(fasta_seqs_list))
+        with open(tmpdir/'INPUT_regions_sequences.fasta', 'w') as outfile:
+            logger.info(f"Sequences for input regions were written in {tmpdir/'INPUT_regions_sequences.bed'} file")
+            SeqIO.write(fasta_seqs_list, outfile, "fasta")
 
     return fasta_seqs_list
 

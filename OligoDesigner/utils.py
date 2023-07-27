@@ -1,4 +1,12 @@
-def prepare_annot_for_muts(input_muts_list, annot, logger):
+from pathlib import Path
+
+def prepare_annot_for_muts(input_muts_list:list, annot:Path) -> dict:
+    """
+    Эта функция парсит аннотацию в формате gtf и возвращает словарь, необходимый для поиска координат для мутаций
+    :param input_muts_list: Список мутаций. Нужен чтобы понять, нужно ли вообще парсить аннотацию или нет
+    :param annot: Объект Path с путем к аннотации в формате gtf
+    :return: Словарь с информацией по каждому транскрипту, необходимой для поиска фланков мутаций
+    """
     prepare_annot_for_mut_flag = 0
     for mut in input_muts_list:
         if len(mut.split(':')) > 1:
@@ -8,12 +16,9 @@ def prepare_annot_for_muts(input_muts_list, annot, logger):
     if not prepare_annot_for_mut_flag:
          return None
 
-    #logger.info('Preparing annotation file for mutations')
     transcript_dict = {}
     for i in range(len(annot)):
         strand = annot[i].split()[6]
-        #if strand == '+':
-        #    continue
         if annot[i].split('\t')[2] == 'transcript':
             transcript_id = annot[i].split('";')[2].split('"')[1] + '.' + annot[i].split('";')[3].split('"')[1]
             transcript_chr = annot[i].split('\t')[0]
@@ -33,8 +38,13 @@ def prepare_annot_for_muts(input_muts_list, annot, logger):
                 
     return transcript_dict
 
-def prepare_annot_for_genes(annot, logger):
-
+def prepare_annot_for_genes(annot:Path) -> [dict, dict]:
+    """
+    Эта функция парсит аннотацию в формате gtf и возвращает словарь, необходимый для поиска координат для генов
+    :param annot: Объект Path с путем к аннотации в формате gtf
+    :return: Словарь с информацией по каждому гену, необходимой для поиска регионов 
+             и словарь с соответствием символа гена и его идентификатора
+    """
     gene_dict, gene_name_dict = {}, {}
     for i in range(len(annot)):
         if annot[i].split('\t')[2] == 'gene':

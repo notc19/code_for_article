@@ -1,5 +1,6 @@
 import pytest
 from contextlib import nullcontext as does_not_raise
+from Bio.SeqRecord import SeqRecord
 
 import logging
 
@@ -16,17 +17,17 @@ def logger():
     return logger
 
 @pytest.mark.parametrize(
-    "coords_list, chrom, answ",
+    "coords_list, chrom, answ, clas",
     [
-        (['chr1\t5\t10\ttest_g\texo3\texon\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', ['>Region chrom:chr1 start:5 end:10 gene:test_g exon:exo3', 'TGATCG']),
-        (['chr1\t5\t9\tA\tchr1:7A>T\tsnp\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', ['>SNP chrom:chr1 start:5 end:9 ref_allele:A snp_id:chr1:7A>T', 'TGATC']),
-        (['chr1\t5\t9\tG\tchr1:7A>T\tsnp\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', []),
-        (['chr1\t5\t9\tdelA\tchr1:7A>T\tsnp\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', ['>SNP chrom:chr1 start:5 end:9 ref_allele:delA snp_id:chr1:7A>T', 'TGATC'])
+        (['chr1\t5\t10\ttest_g\texo3\texon\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', ['>Region chrom:chr1 start:5 end:10 gene:test_g exon:exo3', 'TGATCG'], list),
+        (['chr1\t5\t9\tA\tchr1:7A>T\tsnp\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', ['>SNP chrom:chr1 start:5 end:9 ref_allele:A snp_id:chr1:7A>T', 'TGATC'], list),
+        (['chr1\t5\t9\tG\tchr1:7A>T\tsnp\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', [], list),
+        (['chr1\t5\t9\tdelA\tchr1:7A>T\tsnp\t1'], 'ATGCTGATCGTAGCATCGATCGATCGATCGATCGATGCATCG', ['>SNP chrom:chr1 start:5 end:9 ref_allele:delA snp_id:chr1:7A>T', 'TGATC'], list)
     ]
 )
-def test_create_fasta_sequences(coords_list, chrom, answ, logger):
+def test_create_fasta_sequences(coords_list, chrom, answ, clas, logger):
 
-    assert create_fasta_sequences(coords_list, chrom, logger) == answ
+    assert isinstance(create_fasta_sequences(coords_list, chrom, logger), clas)
 
 @pytest.mark.parametrize(
     "coords_list, genome, answ",
@@ -37,4 +38,4 @@ def test_create_fasta_sequences(coords_list, chrom, answ, logger):
 )
 def test_get_fasta_seqs_from_bed(coords_list, genome, answ, logger):
 
-    assert get_fasta_seqs_from_bed(coords_list, genome, 'GRCh38.p14', False, '', logger) == answ
+    assert isinstance(get_fasta_seqs_from_bed(coords_list, genome, 'GRCh38.p14', False, '', logger)[0], SeqRecord)

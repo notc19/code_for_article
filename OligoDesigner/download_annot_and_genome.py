@@ -1,24 +1,20 @@
 from ftplib import FTP
+from pathlib import Path
+import logging
 import re
 import os
 import shutil
 import gzip
 
-def ftp_download(ftp_link, directory, file_name, dir_output):
+def ftp_download(ftp_link:str, directory:str, file_name:str, dir_output:str):
     '''
-    Download file from ftp server.
-    :param ftp_link: Link to ftp server, e.g. 'ftp.ncbi.nlm.nih.gov'.
-    :type ftp_link: string
+    Скачивает файл с ftp сервера.
+    :param ftp_link: Ссылка на ftp сервер, например 'ftp.ncbi.nlm.nih.gov'.
     :param directory: Directory on ftp server, where the file is located, e.g. 'refseq/H_sapiens/annotation/GRCh38_latest/refseq_identifiers'.
-    :type directory: string
     :param file_name: Name of file that should be downloaded from ftp server, e.g. 'GCF_000001405.39_GRCh38.p13_genomic.fna'.
-    :type file_name: string
     :param dir_output: Path to directory for downloaded files.
-    :type dir_output: string
     :return: Path to downloaded file.
-    :rtype: string
     '''
-    
     ftp = FTP(ftp_link)
     ftp.login()  # login to ftp server
     ftp.cwd(directory)  # move to directory
@@ -34,19 +30,16 @@ def ftp_download(ftp_link, directory, file_name, dir_output):
 
     return file_output
 
-def get_ensemble_ftp_parameters(species, annotation_release, genome_assembly, dir_output, logger):
+def get_ensemble_ftp_parameters(species:str, annotation_release:str, 
+                                genome_assembly:str, dir_output:str, logger:logging):
     '''
-    Get ensembl parameters
-    :param species: _description_
-    :type species: _type_
-    :param annotation_release: _description_
-    :type annotation_release: _type_
-    :param genome_assembly: _description_
-    :type genome_assembly: _type_
-    :param dir_output: _description_
-    :type dir_output: _type_
-    :return: _description_
-    :rtype: _type_
+    Эта функция создает параметры, которые необходимы для скачивания файла из Ensembl
+    :param species: название вида (например, homo_sapiens)
+    :param annotation_release: релиз аннотации (например, release-110)
+    :param genome_assembly: версия сборки генома (например, GRCh38)
+    :param dir_output: директория для скачанного файла (скачивается и удаляется readme с Ensembl 
+                       для поиска current версии аннотации)
+    :return: строки с путем для скачивания файлов с ftp Ensembl
     '''
     ftp_link = 'ftp.ensembl.org'
 
@@ -76,13 +69,11 @@ def get_ensemble_ftp_parameters(species, annotation_release, genome_assembly, di
 
     return ftp_link, ftp_directory_gtf, ftp_directory_fasta, ftp_file_gtf, ftp_file_fasta
 
-def decompress_gzip(file_gzip):
+def decompress_gzip(file_gzip:str) -> str:
     '''
-    Decompress zip files.
-    :param file_gzip: Path to zipped file.
-    :type file_gzip: string
-    :return: Path to unzipped file.
-    :rtype: string
+    Распаковывает gz архив
+    :param file_gzip: Путь к архивированному файлу
+    :return: Путь к разархивированному файлу
     '''
     file_output = file_gzip.split('.gz')[0]
     with gzip.open(file_gzip, 'rb') as f_in:
@@ -91,27 +82,40 @@ def decompress_gzip(file_gzip):
     os.remove(file_gzip)
     return file_output
 
-def download_from_ensembl(typ, species, annotation_release, genome_assembly, dir_output, logger):
-    
+def download_from_ensembl(typ:str, species:str, annotation_release:str, 
+                          genome_assembly:str, dir_output:Path, logger:logging) -> Path:
+    """
+    Эта функция выполняет скачивание из Ensembl генома или аннотации, используя на входе 
+    название вида, релиз Ensembl и версию сборки генома.
+    :param typ: Тип файла, который нужно скачать (геном/аннотация)
+    :param species: Вид, для которого нужно скачать геном/аннотацию
+    :param annotation_release: Релиз аннотации
+    :param genome_assembly: версия сборки генома
+    :param dir_output: Объект Path с путем до директории, в которую будет сохранен файл
+    :param logger: объект класса logging
+    :return: Объект Path с путем к скачанному файлу
+    """
     ftp_link, ftp_directory_gtf, ftp_directory_fasta, ftp_file_gtf, ftp_file_fasta = \
         get_ensemble_ftp_parameters(species, annotation_release, genome_assembly, dir_output, logger)
 
     if typ == 'annotation':
         try:
             file = ftp_download(ftp_link, ftp_directory_gtf, ftp_file_gtf, dir_output)
-        except:
+        except Exception as e:
             logger.error(f'Cannot downlowd {ftp_link}/{ftp_directory_gtf}/{ftp_file_gtf}! Check the correctness of the link')
+            logger.error(e)
             exit(1)
     elif typ == 'genome':
         try:
             file = ftp_download(ftp_link, ftp_directory_fasta, ftp_file_fasta, dir_output)
-        except:
+        except Exception as e:
             logger.error(f'Cannot downlowd {ftp_link}/{ftp_directory_gtf}/{ftp_file_gtf}! Check the correctness of the link')
+            logger.error(e)
             exit(1)
 
     file = decompress_gzip(file)
 
-    return file
+    return Path(file)
 
 if __name__ == '__main__':
     typ = 'genome'
