@@ -94,7 +94,7 @@ def get_fasta_seqs_from_bed(coord_list:list, genome:Path, genome_version:str, wr
             
     if write_intermediate:
         with open(tmpdir/'INPUT_regions_sequences.fasta', 'w') as outfile:
-            logger.info(f"Sequences for input regions were written in {tmpdir/'INPUT_regions_sequences.bed'} file")
+            logger.info(f"Sequences for input regions were written in {tmpdir/'INPUT_regions_sequences.fasta'} file")
             SeqIO.write(fasta_seqs_list, outfile, "fasta")
 
     return fasta_seqs_list
