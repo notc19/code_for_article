@@ -20,6 +20,8 @@ import get_regions_for_genes as grfg
 import get_sequences_from_bed as gfsfb
 import download_annot_and_genome as dag
 import utils
+import merge_and_filter_coordinates as mafc
+import merge_and_filter_sequences as mafs
 
 def create_logger(timestamp: datetime) -> logging:
     """
@@ -48,7 +50,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('-i','--input_genes',help='path to input file with genes',
                              type=str,required=False, default='tests/FileTest_input_genes') #tests/FileTest_input_genes
     args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',
-                             type=str,required=False, default='tests/FileTest_input_muts_hgvs') #tests/FileTest_input_muts_hgvs
+                             type=str,required=False, default='') #tests/FileTest_input_muts_hgvs
     args_parser.add_argument('-b','--input_bed', help='path to input file with tartget regions in bed format',
                              type=str,required=False, default=False)
     args_parser.add_argument('-f','--input_fasta', help='path to input file with tartget sequences in fasta format',
@@ -78,9 +80,17 @@ def parse_args() -> argparse:
     args_parser.add_argument('-j','--intron_depth', help='Depth of introns to include when only exons regions were chosen',
                              type=str, required=False, default=50)
     args_parser.add_argument('--download_annotation', help='Download annotation file from Ensembl or not',
-                             type=bool, required=False,default=False)
+                             type=bool, required=False, default=False)
     args_parser.add_argument('--download_genome', help='Download genome file from Ensembl or not',
-                             type=bool, required=False,default=False)
+                             type=bool, required=False, default=False)
+    args_parser.add_argument('--process_coordinates', help='Whether to process coordinates to remove duplicate and nested ones and merge intersecting ones',
+                             type=bool, required=False, default=True)
+    args_parser.add_argument('--process_sequences', help='Whether to process sequences to cluster highly identical ones',
+                             type=bool, required=False, default=True)
+    args_parser.add_argument('--target_max_id', help='Maximum allowed identity for inpus sequences. Sequences with greater identity will be clustered using vsearch',
+                             type=float, required=False, default=0.95)
+    args_parser.add_argument('--vsearch_binary', help='Absolute path to vsearch binary file',
+                             type=str, required=False, default='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/vsearch')
     
     return args_parser.parse_args()
 
@@ -221,12 +231,21 @@ def main():
                                                            params.genome_version)
         input_bed_list.extend(input_muts_bed_list)
 
+    # Fix coordinates: merge intersecting and filter out duplicated and nested
+    if params.process_coordinates:
+        input_bed_list = mafc.process_coordinates(input_bed_list, params.write_intermediate, tmpdir, logger)
+
     # Get fasta sequences for input regions
     if input_bed_list:
         input_fasta_intermed_list = gfsfb.get_fasta_seqs_from_bed(input_bed_list, genome_file, params.genome_version,
                                                                     params.write_intermediate, tmpdir, logger)
         input_fasta_list.extend(input_fasta_intermed_list)
     
+    # Fix sequences: merge intersecting and cluster highly identical ones
+    if params.process_sequences:
+        input_fasta_list = mafs.process_sequences(input_fasta_list, tmpdir, logger,
+                                                  params.vsearch_binary, params.target_max_id)
+
     # The end of the program!
     timestamp = datetime.now()
     logger.info(f'######### Finish OligoDesigner at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
