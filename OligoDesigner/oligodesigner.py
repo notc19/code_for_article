@@ -11,6 +11,7 @@ from datetime import datetime
 import argparse
 from pathlib import Path
 
+import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -22,6 +23,8 @@ import download_annot_and_genome as dag
 import utils
 import merge_and_filter_coordinates as mafc
 import merge_and_filter_sequences as mafs
+import run_oligo_design as rod
+import oligonucleotide_analysis as olan
 
 def create_logger(timestamp: datetime) -> logging:
     """
@@ -86,11 +89,15 @@ def parse_args() -> argparse:
     args_parser.add_argument('--process_coordinates', help='Whether to process coordinates to remove duplicate and nested ones and merge intersecting ones',
                              type=bool, required=False, default=True)
     args_parser.add_argument('--process_sequences', help='Whether to process sequences to cluster highly identical ones',
-                             type=bool, required=False, default=True)
+                             type=bool, required=False, default=False)
     args_parser.add_argument('--target_max_id', help='Maximum allowed identity for inpus sequences. Sequences with greater identity will be clustered using vsearch',
                              type=float, required=False, default=0.95)
     args_parser.add_argument('--vsearch_binary', help='Absolute path to vsearch binary file',
                              type=str, required=False, default='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/vsearch')
+    args_parser.add_argument('--threads', help='Number of threads',
+                             type=int, required=False, default=4)
+    args_parser.add_argument('--analytics', help='Whether to perform the analysis of designed oligonucleotides',
+                             type=bool, required=False, default=True)
     
     return args_parser.parse_args()
 
@@ -240,11 +247,23 @@ def main():
         input_fasta_intermed_list = gfsfb.get_fasta_seqs_from_bed(input_bed_list, genome_file, params.genome_version,
                                                                     params.write_intermediate, tmpdir, logger)
         input_fasta_list.extend(input_fasta_intermed_list)
-    
+
     # Fix sequences: merge intersecting and cluster highly identical ones
     if params.process_sequences:
         input_fasta_list = mafs.process_sequences(input_fasta_list, tmpdir, logger,
                                                   params.vsearch_binary, params.target_max_id)
+
+    # Create oligonucleotides!
+    oligos = rod.run_oligo_design(input_fasta_list, params.threads, params.bait_length, logger)
+    oligos_df = pd.DataFrame([o.split(' ') for o in list(map(str,oligos))], 
+                             columns=['Olig_ID', 'GC', 'Entropy', 'Tm', 'Qual', 'Status', 'Seq'])
+    oligos_df.to_csv(outdir/'OUTPUT_Oligonucleotides.tsv', sep='\t', index=False)
+    oligos_df.to_excel(outdir/'OUTPUT_Oligonucleotides.xlsx', index=False)
+    logger.info(f'Oligonucleotides were written in {outdir}/OUTPUT_Oligonucleotides.tsv file')
+
+    # Perform analysis of designed oligonucleotides
+    if params.analytics:
+        olan.analyze_oligos(oligos_df, logger)
 
     # The end of the program!
     timestamp = datetime.now()
