@@ -98,6 +98,14 @@ def parse_args() -> argparse:
                              type=int, required=False, default=4)
     args_parser.add_argument('--analytics', help='Whether to perform the analysis of designed oligonucleotides',
                              type=bool, required=False, default=True)
+    args_parser.add_argument('--blast_strategy', help='Для каких целей использовать blast. Варианты: filter/analyze',
+                             type=str, required=False, default='analyze')
+    args_parser.add_argument('--blast_binary', help='Путь до исполняемого файла blastn',
+                             type=str, required=False, default='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/blastn')
+    args_parser.add_argument('--blast_db', help='Путь до базы данны blast',
+                             type=str, required=False, default='/home/a_vikhorev/Data/DataBases/hg38_blast/hg38')
+    args_parser.add_argument('--blast_filtering_params', help='Параметры для фильтрации результатов бласта (identity, coverage, степень e-value)',
+                             type=str, required=False, default='0.85,0.85,5')
     
     return args_parser.parse_args()
 
@@ -254,9 +262,11 @@ def main():
                                                   params.vsearch_binary, params.target_max_id)
 
     # Create oligonucleotides!
-    oligos = rod.run_oligo_design(input_fasta_list, params.threads, params.bait_length, logger)
+    oligos = rod.run_oligo_design(input_fasta_list, params.threads, logger, params)
     oligos_df = pd.DataFrame([o.split(' ') for o in list(map(str,oligos))], 
-                             columns=['Olig_ID', 'GC', 'Entropy', 'Tm', 'Qual', 'Status', 'Seq'])
+                             columns=['Olig_id', 'GC', 'Entropy', 'Tm', 'Repeats', 'Masked', 'Blast_Hits', 'Qual', 'Status', 'Seq'])
+    oligos_df['Region_Name'] = oligos_df['Olig_id']
+    oligos_df['Olig_id'] = [f'olig_{i+1}' for i in range(oligos_df.shape[0])]
     oligos_df.to_csv(outdir/'OUTPUT_Oligonucleotides.tsv', sep='\t', index=False)
     oligos_df.to_excel(outdir/'OUTPUT_Oligonucleotides.xlsx', index=False)
     logger.info(f'Oligonucleotides were written in {outdir}/OUTPUT_Oligonucleotides.tsv file')

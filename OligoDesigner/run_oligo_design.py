@@ -1,6 +1,7 @@
 import multiprocessing
 from itertools import product
 import logging
+import argparse
 
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -13,24 +14,33 @@ class Oligonucleotide():
     """
     Этот класс содержит объект олигонуклеотида
     """
-    def __init__(self, id, seq, gc, entr, mt):
+    def __init__(self, id, seq, gc, entr, mt, repeat, masked):
         self.id = id
         self.seq = seq
         self.gc = gc
         self.entr = entr
         self.tm = mt
+        self.repeat = repeat
+        self.masked = masked
+        self.blastresult = 1
 
         try:
-            self.qual = round(entr / (abs(0.65-gc) + abs(70-mt)/100), 3)
+            self.qual = round((entr - repeat - masked) / (abs(0.65-gc) + abs(70-mt)/100), 3)
         except ZeroDivisionError:
             self.qual = round(entr / 0.01, 3)
-        self.status = 'perfect' if 0.55 <= gc <= 0.65 and 65 <= mt <=75 and entr > 1.9 else ''
+
+        if gc < 0.2 or mt < 40 or repeat > 0.20 or masked > 0.25:
+            self.status = 'bad'
+        elif 0.50 <= gc <= 0.60 and 65 <= mt <=80 and entr > 1.9:
+            self.status = 'perfect'
+        else:
+            self.status = 'best'
 
     def __str__(self):
-        return f'{self.id} {self.gc} {self.entr} {self.tm} {self.qual} {self.status} {self.seq}'
+        return f'{self.id} {self.gc} {self.entr} {self.tm} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq}'
 
     def __repr__(self):
-        return f'{self.id} {self.gc} {self.entr} {self.tm} {self.qual} {self.status} {self.seq[:10]}...\n'
+        return f'{self.id} {self.gc} {self.entr} {self.tm} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq[:]}...\n' #
 
 
 def design_oligos(sequence: SeqRecord, length: int) -> Oligonucleotide:
@@ -47,33 +57,51 @@ def design_oligos_snp(sequence: SeqRecord, length: int) -> Oligonucleotide:
     :param length: длина олигонуклеотида
     :return: Объект Oligonucleotide
     """
-    #print(sequence)
     best_qual = 0
     for i in range(0,len(sequence)-length):
         subseq = sequence.seq[i:i+length]
+
         gc = st.gc_content(subseq)
         entropy = st.estimate_shannon_entropy(subseq)
         mt = st.calculate_melting_temp(subseq)
-        olig = Oligonucleotide(sequence.id, subseq, gc, entropy, mt)
+        longest_repeat = st.calculate_longest_repeat_percent(subseq)
+        longest_masked = st.calculate_repeat_masked_percent(subseq)
+
+        olig = Oligonucleotide(sequence.id, subseq, gc, entropy, mt, longest_repeat, longest_masked)
+
+        if blast_strategy == 'filter':
+            if olig.status == 'perfect' or olig.qual > best_qual:
+                blast_result = st.blastn(blast_binary, olig.seq, blast_db, 10, 1)
+                blast_numhits = st.read_blast_results(blast_result, length, max_id, max_cov, max_eval)
+                olig.blastresult = blast_numhits
         if olig.status == 'perfect':
-            return olig
+            if olig.blastresult == 1:
+                best_olig = olig
+                break
         elif olig.qual >= best_qual:
             best_olig = olig
-    best_olig.status = 'best'
+
+    if blast_strategy == 'analyze':
+        blast_result = st.blastn(blast_binary, best_olig.seq, blast_db, 10, 1)
+        blast_numhits = st.read_blast_results(blast_result, length, max_id, max_cov, max_eval)
+        best_olig.blastresult = blast_numhits
 
     return best_olig
 
 
-def run_oligo_design(seq_list, threads, length, logger):
+def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, params):
     """
     
     """
+    global length, blast_binary, blast_db, blast_strategy, max_id, max_cov, max_eval
+    length, blast_binary, blast_db, blast_strategy = params.bait_length, params.blast_binary, params.blast_db, params.blast_strategy
+    max_id, max_cov, max_eval = params.blast_filtering_params.split(',')
     logger.info('Start designing oligonucleotides!')
 
     snp_seq_list = [seq for seq in seq_list if seq.name == 'snp' or 'snp' in seq.description]
     other_seq_list = [seq for seq in seq_list if not seq.name == 'snp' and not 'snp' in seq.description]
     
-    logger.info(f'There were found {len(snp_seq_list)} regions with SNP and {len(other_seq_list)} other regions')
+    logger.info(f'There were found {len(snp_seq_list)} sequences with SNP and {len(other_seq_list)} other regions')
 
     output_oligos = []
     lock = multiprocessing.Lock()
@@ -106,6 +134,24 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    oligos = run_oligo_design(seq_list, 4, 100, logger)
+    args_parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
+    args_parser.add_argument('-l','--bait_length', help='Length of the designed olignucleotide bait',
+                             type=int, required=False, default=100)
+    args_parser.add_argument('--threads', help='Number of threads',
+                             type=int, required=False, default=4)
+    args_parser.add_argument('--blast_strategy', help='Для каких целей использовать blast. Варианты: filter/analyze',
+                             type=str, required=False, default='analyze')
+    args_parser.add_argument('--blast_binary', help='Путь до исполняемого файла blastn',
+                             type=str, required=False, default='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/blastn')
+    args_parser.add_argument('--blast_db', help='Путь до базы данны blast',
+                             type=str, required=False, default='/home/a_vikhorev/Data/DataBases/hg38_blast/hg38')
+    args_parser.add_argument('--blast_filtering_params', help='Параметры для фильтрации результатов бласта (identity, coverage, степень e-value)',
+                             type=str, required=False, default='0.85,0.85,5')
+    params = args_parser.parse_args()
 
-    print([o.split(' ') for o in list(map(str,oligos))])
+    binary='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/blastn'
+    db='/home/a_vikhorev/Data/DataBases/hg38_blast/hg38'
+
+    oligos = run_oligo_design(seq_list, 14, logger, params)
+
+    print(oligos)
