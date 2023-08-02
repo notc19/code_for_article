@@ -51,9 +51,9 @@ def parse_args() -> argparse:
     args_parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
 
     args_parser.add_argument('-i','--input_genes',help='path to input file with genes',
-                             type=str,required=False, default='tests/FileTest_input_genes') #tests/FileTest_input_genes
+                             type=str,required=False, default='tests/FileTest_input_genes_ATLAS') #tests/FileTest_input_genes
     args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',
-                             type=str,required=False, default='tests/FileTest_input_muts') #tests/FileTest_input_muts_hgvs
+                             type=str,required=False, default='') #tests/FileTest_input_muts_hgvs
     args_parser.add_argument('-b','--input_bed', help='path to input file with tartget regions in bed format',
                              type=str,required=False, default=False)
     args_parser.add_argument('-f','--input_fasta', help='path to input file with tartget sequences in fasta format',
@@ -66,8 +66,12 @@ def parse_args() -> argparse:
                              type=str, required=False,default='/home/a_vikhorev/Data/Genome/Homo_sapiens.GRCh38.109.gtf')
     args_parser.add_argument('-g','--genome', help='path to file with reference genome in fasta format',
                              type=str, required=False,default='/home/a_vikhorev/Data/DataBases/Hg38_GCA_000001405.15_BWA/GCA_000001405.15.fasta')
-    args_parser.add_argument('-l','--bait_length', help='Length of the designed olignucleotide bait',
+    args_parser.add_argument('-l','--length', help='Length of the designed olignucleotide bait',
                              type=int, required=False, default=100)
+    args_parser.add_argument('--max_i', help='Maximum intersection of oligos in region',
+                             type=int, required=False, default=40)
+    args_parser.add_argument('--min_i', help='Minimum intersection of oligos in region',
+                             type=int, required=False, default=-20)
     args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation',
                              type=int, required=False, default=100)
     args_parser.add_argument('-w','--write_intermediate', help='write intermediate results or not',
@@ -99,7 +103,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('--analytics', help='Whether to perform the analysis of designed oligonucleotides',
                              type=bool, required=False, default=True)
     args_parser.add_argument('--blast_strategy', help='Для каких целей использовать blast. Варианты: filter/analyze',
-                             type=str, required=False, default='analyze')
+                             type=str, required=False, default='analyzee')
     args_parser.add_argument('--blast_binary', help='Путь до исполняемого файла blastn',
                              type=str, required=False, default='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/blastn')
     args_parser.add_argument('--blast_db', help='Путь до базы данны blast',
@@ -184,6 +188,7 @@ def main():
     logger.info(f'######### Start OligoDesigner at {timestamp.day}.{timestamp.month}.{timestamp.year} {timestamp.hour}:{timestamp.minute}:{timestamp.second} #########')
 
     # Read params
+    global params
     logger.info('The OligoDesigner was launched with the following parameters:')
     params = parse_args()
 
@@ -240,7 +245,7 @@ def main():
 
     # Get bed regions for input mutations
     if input_muts_list:
-        flank_length = int(params.bait_length * 1.7 / 2) if not params.mutation_flank else params.mutation_flank
+        flank_length = int(params.length * 1.7 / 2) if not params.mutation_flank else params.mutation_flank
         input_muts_bed_list = grfm.get_regions_for_muts(input_muts_list, annot_for_muts, flank_length, \
                                                            params.write_intermediate, tmpdir, logger, \
                                                            params.genome_version)

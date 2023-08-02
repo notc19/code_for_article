@@ -41,7 +41,7 @@ def calculate_melting_temp(seq:str) -> float:
     :param seq: последовательность олигонуклеотида
     :return: температура плавления олигонуклеотида
     """
-    return round(mt.Tm_GC(seq), 3)
+    return round(mt.Tm_GC(seq, strict=False), 3)
 
 def calculate_longest_repeat_percent(seq:str) -> float:
     """
@@ -129,6 +129,18 @@ def read_blast_results(blastresult:list, length:int, max_id:float, max_cov:float
                 mismatch_counter += 1
     
     return mismatch_counter
+
+def get_olig_stats(subseq):
+    """
+    
+    """
+    gc = gc_content(subseq)
+    entropy = estimate_shannon_entropy(subseq)
+    mt = calculate_melting_temp(subseq)
+    longest_repeat = calculate_longest_repeat_percent(subseq)
+    longest_masked = calculate_repeat_masked_percent(subseq)
+
+    return gc, entropy, mt, longest_repeat, longest_masked
 
 if __name__ == '__main__':
     #seq = 'TACGATCGATTTTTTTTTTTTTTTTTTCCCCCCCCCCCCCGATCGTAGCATCGATCGATCGAAAAAAAACATCGATCGATCGATCGATCGACTTTTT'
