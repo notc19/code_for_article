@@ -72,7 +72,11 @@ def postprocess_oligos(tmpdir: Path, outdir:Path, vsearch_binary:str, max_id:flo
                         for record in list(SeqIO.parse(f'{tmpdir}/OUTPUT_Oligonucleotides_RAW.fasta', "fasta"))}
     for record in clustered_oligs:
         record.description = seq_records_dict[record.id.split(';')[0]]
-    olig_list = [Oligonucleotide(o.description.split(' ')[1], str(o.seq), *o.description.split(' ')[2:7]) for o in clustered_oligs]
+    olig_list = []
+    for o in clustered_oligs:
+        olig = Oligonucleotide(o.description.split(' ')[1], str(o.seq), *o.description.split(' ')[2:7])
+        olig.blastresult = o.description.split(' ')[7]
+        olig_list.append(olig)
 
     # Second step - trim oligonucleotides
     olig_list = trim_oligos(olig_list)

@@ -52,13 +52,13 @@ def parse_args() -> argparse:
     args_parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
 
     args_parser.add_argument('-i','--input_genes',help='path to input file with genes',
-                             type=str,required=False, default='tests/FileTest_input_genes_ATLAS') #tests/FileTest_input_genes
+                             type=str,required=False, default='') #tests/FileTest_input_genes #tests/FileTest_input_genes_ATLAS
     args_parser.add_argument('-m','--input_muts', help='path to input file with mutations',
                              type=str,required=False, default='') #tests/FileTest_input_muts_hgvs
     args_parser.add_argument('-b','--input_bed', help='path to input file with tartget regions in bed format',
-                             type=str,required=False, default=False)
+                             type=str,required=False, default='')
     args_parser.add_argument('-f','--input_fasta', help='path to input file with tartget sequences in fasta format',
-                             type=str,required=False, default='') #tests/FileTest_genome.fasta tests/test_reuslts/test.fasta
+                             type=str,required=False, default='/home/a_vikhorev/Projects/Pannels/1.ATLAS_BRCA/coords/ATLAS_exones.fasta') #tests/FileTest_genome.fasta tests/test_reuslts/test.fasta
     args_parser.add_argument('-o','--output', help='path of output folder',
                              type=str,required=False, default="./tests/test_reuslts")
     args_parser.add_argument('-t','--tmpdir', help='path to directory with temporary files',
@@ -104,7 +104,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('--analytics', help='Whether to perform the analysis of designed oligonucleotides',
                              type=bool, required=False, default=True)
     args_parser.add_argument('--blast_strategy', help='Для каких целей использовать blast. Варианты: filter/analyze',
-                             type=str, required=False, default='analyzee')
+                             type=str, required=False, default='analyze')
     args_parser.add_argument('--blast_binary', help='Путь до исполняемого файла blastn',
                              type=str, required=False, default='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/blastn')
     args_parser.add_argument('--blast_db', help='Путь до базы данны blast',

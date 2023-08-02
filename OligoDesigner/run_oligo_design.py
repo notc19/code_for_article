@@ -16,7 +16,7 @@ class Oligonucleotide():
     def __init__(self, idi, seq, gc, entr, mt, repeat, masked):
         self.idi = idi
         self.seq = str(seq)
-        self.gc = float(gc)
+        self.gc = round(float(gc), 3)
         self.entr = float(entr)
         self.mt = float(mt)
         self.repeat = float(repeat)
