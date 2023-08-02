@@ -84,7 +84,7 @@ def calculate_repeat_masked_percent(seq:str) -> float:
 
         i+=k if k > 0 else 1
 
-    return round(counter / len(seq), 3) if counter else 0.05
+    return round(counter / len(seq), 3) if counter else 0
 
 def blastn(binary:str, seq:str, blastdb:str, maxhits:int, threads:int):
     """

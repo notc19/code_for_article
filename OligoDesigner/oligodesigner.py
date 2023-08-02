@@ -24,6 +24,7 @@ import utils
 import merge_and_filter_coordinates as mafc
 import merge_and_filter_sequences as mafs
 import run_oligo_design as rod
+import run_oligo_postprocessing as rop
 import oligonucleotide_analysis as olan
 
 def create_logger(timestamp: datetime) -> logging:
@@ -110,6 +111,8 @@ def parse_args() -> argparse:
                              type=str, required=False, default='/home/a_vikhorev/Data/DataBases/hg38_blast/hg38')
     args_parser.add_argument('--blast_filtering_params', help='Параметры для фильтрации результатов бласта (identity, coverage, степень e-value)',
                              type=str, required=False, default='0.85,0.85,5')
+    args_parser.add_argument('--postprocess_oligos', help='Выполнять ли постпроцессинг подобранных олигонуклеотидов',
+                             type=bool, required=False, default=True)
     
     return args_parser.parse_args()
 
@@ -268,8 +271,20 @@ def main():
 
     # Create oligonucleotides!
     oligos = rod.run_oligo_design(input_fasta_list, params.threads, logger, params)
+
+    # Write oligos to fasta
+    seq_to_write_list = [SeqRecord(Seq(olig[-1]), id = f'olig_{c}', description=' '.join(olig[0:-1])) \
+                         for c, olig in enumerate([o.split(' ') for o in list(map(str,oligos))])]
+    SeqIO.write(seq_to_write_list, outdir/'OUTPUT_Oligonucleotides_RAW.fasta', "fasta")
+    logger.info(f'Oligs were written in OUTPUT_Oligonucleotides_RAW.fasta file!')
+
+    # Postprocess oligonucleotides
+    if params.postprocess_oligos:
+        oligos = rop.postprocess_oligos(outdir, params.vsearch_binary, params.target_max_id, logger)
+
+    # Write oligonucleotides to the tsv and excel file
     oligos_df = pd.DataFrame([o.split(' ') for o in list(map(str,oligos))], 
-                             columns=['Olig_id', 'GC', 'Entropy', 'Tm', 'Repeats', 'Masked', 'Blast_Hits', 'Qual', 'Status', 'Seq'])
+                                columns=['Olig_id', 'GC', 'Entropy', 'Tm', 'Repeats', 'Masked', 'Blast_Hits', 'Qual', 'Status', 'Seq'])
     oligos_df['Region_Name'] = oligos_df['Olig_id']
     oligos_df['Olig_id'] = [f'olig_{i+1}' for i in range(oligos_df.shape[0])]
     oligos_df.to_csv(outdir/'OUTPUT_Oligonucleotides.tsv', sep='\t', index=False)

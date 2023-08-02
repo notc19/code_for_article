@@ -16,30 +16,30 @@ class Oligonucleotide():
     def __init__(self, idi, seq, gc, entr, mt, repeat, masked):
         self.idi = idi
         self.seq = str(seq)
-        self.gc = gc
-        self.entr = entr
-        self.tm = mt
-        self.repeat = repeat
-        self.masked = masked
+        self.gc = float(gc)
+        self.entr = float(entr)
+        self.mt = float(mt)
+        self.repeat = float(repeat)
+        self.masked = float(masked)
         self.blastresult = 1
 
         try:
-            self.qual = round((entr - repeat - masked) / (abs(0.65-gc) + abs(70-mt)/100), 3)
+            self.qual = round((self.entr - self.repeat - self.masked) / (abs(0.65-self.gc) + abs(70-self.mt)/100), 3)
         except ZeroDivisionError:
-            self.qual = round(entr / 0.01, 3)
+            self.qual = round(self.entr / 0.01, 3)
 
-        if gc < 0.2 or mt < 40 or repeat > 0.20 or masked > 0.25:
+        if self.gc < 0.2 or self.mt < 40 or self.repeat > 0.20 or self.masked > 0.25:
             self.status = 'bad'
-        elif 0.50 <= gc <= 0.60 and 65 <= mt <=80 and entr > 1.9:
+        elif 0.50 <= self.gc <= 0.60 and 65 <= self.mt <=80 and self.entr > 1.9:
             self.status = 'perfect'
         else:
             self.status = 'best'
 
     def __str__(self):
-        return f'{self.idi} {self.gc} {self.entr} {self.tm} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq}'
+        return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq}'
 
     def __repr__(self):
-        return f'{self.idi} {self.gc} {self.entr} {self.tm} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq[:]}...\n' #
+        return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq[:]}...\n' #
 
 
 def design_oligos_snp(sequence: SeqRecord) -> Oligonucleotide:
@@ -195,4 +195,4 @@ if __name__ == '__main__':
     oligos = run_oligo_design(seq_list, 14, logger, params)
 
     print(len(oligos))
-    #print(oligos)
+    print(oligos[-5:])

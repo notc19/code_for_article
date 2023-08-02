@@ -27,12 +27,13 @@ def process_sequences(input_fasta_list:[SeqRecord], tmpdir:Path, logger:logging,
                         '--clusterout_id',
                         '--id', f'{max_id}',
                         '--iddef', '0',
-                        '--threads', '1'
+                        '--threads', '1',
+                        '--maxseqlength', '500000'
                        ]
     
     vsearch_command = ' '.join(vsearch_options)
     logger.info(f'Running VSEARCH with the following command: {vsearch_command}')
-    logger.warning(f'WARNING! Sequences with length >50000 bp will be removed! This is vsearch internal filter')
+    logger.warning(f'WARNING! Sequences with length >500000 bp will be removed! This is vsearch internal filter')
     output = subprocess.run(vsearch_options, capture_output=True)
     stderr = str(output.stderr)
     if output.returncode:
@@ -43,7 +44,7 @@ def process_sequences(input_fasta_list:[SeqRecord], tmpdir:Path, logger:logging,
         logger.info(f'VSEARCH clustering is done!')
         logger.info(stderr)
     
-    fixed_fasta_list = list(SeqIO.parse(f'{tmpdir}/FIXED_clustered_sequences.fasta', "fasta"))
+    fixed_fasta_list = list(SeqIO.parse(f'{tmpdir}/INPUT_regions_sequences_FIXED.fasta', "fasta"))
 
     logger.info(f'There were {len(input_fasta_list)} sequence in input list, but after clustering {len(fixed_fasta_list)} was remained!')
 

@@ -92,7 +92,7 @@ def process_coordinates(input_bed_list:list, write_intermediate:bool, tmpdir:Pat
             if len(coords_sorted) != len(coords_sorted_merged):
                 coords_sorted = sorted(coords_sorted_merged, key=lambda x: (int(x[1]),int(x[2])))
                 iter_counter += 1
-                logger.info(f'Iteration {iter_counter} was done!')
+                logger.debug(f'Iteration {iter_counter} was done!')
             else:
                 break
         fixed_bed_list.extend(coords_sorted_merged)
@@ -102,7 +102,7 @@ def process_coordinates(input_bed_list:list, write_intermediate:bool, tmpdir:Pat
     fixed_bed_list = list(map(('\t').join,fixed_bed_list))
 
     if write_intermediate:
-        with open(tmpdir/'FIXED_coords.bed', 'w') as outfile:
+        with open(tmpdir/'INPUT_coords_FIXED.bed', 'w') as outfile:
             logger.info(f"Coordinates for input genes were written in {tmpdir/'FIXED_coords.bed'} file")
             #print('\n'.join(fixed_bed_list))
             outfile.write('\n'.join(fixed_bed_list))
