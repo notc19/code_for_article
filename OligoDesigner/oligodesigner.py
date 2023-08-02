@@ -275,12 +275,12 @@ def main():
     # Write oligos to fasta
     seq_to_write_list = [SeqRecord(Seq(olig[-1]), id = f'olig_{c}', description=' '.join(olig[0:-1])) \
                          for c, olig in enumerate([o.split(' ') for o in list(map(str,oligos))])]
-    SeqIO.write(seq_to_write_list, outdir/'OUTPUT_Oligonucleotides_RAW.fasta', "fasta")
+    SeqIO.write(seq_to_write_list, tmpdir/'OUTPUT_Oligonucleotides_RAW.fasta', "fasta")
     logger.info(f'Oligs were written in OUTPUT_Oligonucleotides_RAW.fasta file!')
 
     # Postprocess oligonucleotides
     if params.postprocess_oligos:
-        oligos = rop.postprocess_oligos(outdir, params.vsearch_binary, params.target_max_id, logger)
+        oligos = rop.postprocess_oligos(tmpdir, outdir, params.vsearch_binary, params.target_max_id, logger)
 
     # Write oligonucleotides to the tsv and excel file
     oligos_df = pd.DataFrame([o.split(' ') for o in list(map(str,oligos))], 

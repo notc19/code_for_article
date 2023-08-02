@@ -8,9 +8,10 @@ from Bio import SeqIO
 
 from run_oligo_design import Oligonucleotide
 
-def cluster_oligos(outdir:Path, logger:logging, vsearch_binary:str, max_id:float) -> [Oligonucleotide]:
+def cluster_oligos(tmpdir:Path, outdir:Path, logger:logging, vsearch_binary:str, max_id:float) -> [Oligonucleotide]:
     """
     Эта функция выполняет кластеризацию поданных на вход олигов.
+    :param tmpdir: директория для промежуточных результатов
     :param outdir: Директория, в которую будут сохраняться результаты
     :param logger: Объект класса logging
     :param vsearch_binary: Путь до исполняемого файла vsearch
@@ -19,7 +20,7 @@ def cluster_oligos(outdir:Path, logger:logging, vsearch_binary:str, max_id:float
     """
     vsearch_binary = vsearch_binary if vsearch_binary else 'vsearch'
     vsearch_options = [vsearch_binary,
-                        '--cluster_fast', f'{outdir}/OUTPUT_Oligonucleotides_RAW.fasta',
+                        '--cluster_fast', f'{tmpdir}/OUTPUT_Oligonucleotides_RAW.fasta',
                         '--centroids', f'{outdir}/OUTPUT_Oligonucleotides_FIXED.fasta',
                         '--clusterout_id',
                         '--id', f'{max_id}',
@@ -55,7 +56,7 @@ def trim_oligos(olig_list:list) -> [Oligonucleotide]:
     
     return olig_list
 
-def postprocess_oligos(outdir:Path, vsearch_binary:str, max_id:float, logger:logging) -> [Oligonucleotide]:
+def postprocess_oligos(tmpdir: Path, outdir:Path, vsearch_binary:str, max_id:float, logger:logging) -> [Oligonucleotide]:
     """
     Эта функция выполняет построцессинг олигонуклеотидов (фильтрацию по кластеризации и тримминг)
     :param outdir: Директория с результатами
@@ -66,9 +67,9 @@ def postprocess_oligos(outdir:Path, vsearch_binary:str, max_id:float, logger:log
     """
 
     # First step - cluster oligonucleotides using vsearch
-    clustered_oligs = cluster_oligos(outdir, logger, vsearch_binary, max_id)
+    clustered_oligs = cluster_oligos(tmpdir, outdir, logger, vsearch_binary, max_id)
     seq_records_dict = {record.id:record.description \
-                        for record in list(SeqIO.parse(f'{outdir}/OUTPUT_Oligonucleotides_RAW.fasta', "fasta"))}
+                        for record in list(SeqIO.parse(f'{tmpdir}/OUTPUT_Oligonucleotides_RAW.fasta', "fasta"))}
     for record in clustered_oligs:
         record.description = seq_records_dict[record.id.split(';')[0]]
     olig_list = [Oligonucleotide(o.description.split(' ')[1], str(o.seq), *o.description.split(' ')[2:7]) for o in clustered_oligs]
