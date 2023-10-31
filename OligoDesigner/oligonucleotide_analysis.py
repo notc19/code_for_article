@@ -1,7 +1,35 @@
 import logging
 import pandas as pd
 
-def analyze_oligos(oligo_df:pd.DataFrame, logger:logging) -> None:
+def get_genome_coords_for_oligos(oligos_df, input_fasta_list, tmpdir, logger):
+    """
+    Эта функция находит геномные координаты для каждого олига
+
+    """
+    exon_seq_dict, exon_coord_dict = {}, {}
+    for input_fasta in input_fasta_list:
+        exon_id = input_fasta.id
+        start_coord = input_fasta.description.split('start:')[1].split(' end')[0]
+        chrom = input_fasta.description.split('chrom:')[1].split(' start')[0]
+        sequence = input_fasta.seq
+        
+        exon_coord_dict[exon_id] = [chrom, start_coord]
+        exon_seq_dict[exon_id] = sequence
+
+    olig_bed_list = []
+    for _, olig in oligos_df.iterrows():
+        olig_start_coord = exon_seq_dict[olig.Region_Name].index(olig.Seq) + int(exon_coord_dict[olig.Region_Name][1])
+        olig_end_coord = olig_start_coord + int(olig.Length)
+        olig_chr = exon_coord_dict[olig.Region_Name][0]
+        olig_bed_list.append([olig_chr, str(olig_start_coord), str(olig_end_coord), olig.Olig_id, olig.Region_Name])
+
+    #print(['\t'.join(l) for l in olig_bed_list])
+
+    with open(tmpdir/'OUTPUT_Oligonucleotides.bed', 'w') as outfile:
+            logger.info(f"Oligunucleotide genome coordinates were written in {tmpdir/'OUTPUT_Oligonucleotides.bed'} file")
+            outfile.write('\n'.join(['\t'.join(l) for l in olig_bed_list]))
+
+def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, tmpdir, logger:logging) -> None:
     """
     Эта функция выполняет анализ разработанной панели олигонуклеотидов
     :param oligo_df: Датафрейм с олигонуклеотидами
@@ -17,3 +45,5 @@ def analyze_oligos(oligo_df:pd.DataFrame, logger:logging) -> None:
     logger.info(f'The mean Repeat Length in designed oligos is {round(oligo_df["Repeats"].mean(), 3)}')
     logger.info(f'The mean Masked Length in designed oligos is {round(oligo_df["Masked"].mean(), 3)}')
     logger.info(f'The mean Blast Hits in designed oligos is {round(oligo_df["Blast_Hits"].mean(), 3)}')
+
+    get_genome_coords_for_oligos(oligo_df, input_fasta_list, tmpdir, logger)

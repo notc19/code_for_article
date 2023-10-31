@@ -112,7 +112,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('--blast_filtering_params', help='Параметры для фильтрации результатов бласта (identity, coverage, степень e-value)',
                              type=str, required=False, default='0.85,0.85,5')
     args_parser.add_argument('--postprocess_oligos', help='Выполнять ли постпроцессинг подобранных олигонуклеотидов',
-                             type=bool, required=False, default=True)
+                             type=bool, required=False, default=False)
     
     return args_parser.parse_args()
 
@@ -265,9 +265,9 @@ def main():
         input_fasta_list.extend(input_fasta_intermed_list)
 
     # Fix sequences: merge intersecting and cluster highly identical ones
-    if params.process_sequences:
-        input_fasta_list = mafs.process_sequences(input_fasta_list, tmpdir, logger,
-                                                  params.vsearch_binary, params.target_max_id)
+    #if params.process_sequences:
+    #    input_fasta_list = mafs.process_sequences(input_fasta_list, tmpdir, logger,
+    #                                              params.vsearch_binary, params.target_max_id)
 
     # Create oligonucleotides!
     oligos = rod.run_oligo_design(input_fasta_list, params.threads, logger, params)
@@ -293,7 +293,7 @@ def main():
 
     # Perform analysis of designed oligonucleotides
     if params.analytics:
-        olan.analyze_oligos(oligos_df, logger)
+        olan.analyze_oligos(oligos_df, input_fasta_list, tmpdir, logger)
 
     # The end of the program!
     timestamp = datetime.now()
