@@ -13,7 +13,7 @@ class Oligonucleotide():
     """
     Этот класс содержит объект олигонуклеотида
     """
-    def __init__(self, idi, seq, gc, entr, mt, repeat, masked):
+    def __init__(self, idi, seq, length, gc, entr, mt, repeat, masked):
         self.idi = idi
         self.seq = str(seq)
         self.gc = round(float(gc), 3)
@@ -22,6 +22,7 @@ class Oligonucleotide():
         self.repeat = float(repeat)
         self.masked = float(masked)
         self.blastresult = 1
+        self.len = length
 
         try:
             self.qual = round((self.entr - self.repeat - self.masked) / (abs(0.65-self.gc) + abs(70-self.mt)/100), 3)
@@ -36,7 +37,7 @@ class Oligonucleotide():
             self.status = 'best'
 
     def __str__(self):
-        return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq}'
+        return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.len} {self.seq}'
 
     def __repr__(self):
         return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq[:]}...\n' #
@@ -59,7 +60,7 @@ def design_oligos_snp(sequence: SeqRecord) -> Oligonucleotide:
     for i in range(0,len(sequence)-params.length+1):
         subseq = sequence.seq[i:i+params.length]
 
-        olig = Oligonucleotide(sequence.id, subseq, *st.get_olig_stats(subseq))
+        olig = Oligonucleotide(sequence.id, subseq, len(subseq), *st.get_olig_stats(subseq))
 
         if params.blast_strategy == 'filter':
             if olig.status == 'perfect' or olig.qual > best_qual:
@@ -93,7 +94,7 @@ def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
 
     # create first olig - just first {length} nucleotides from start
     subseq = seq[:params.length]
-    olig = Oligonucleotide(sequence.id, subseq, *st.get_olig_stats(subseq))
+    olig = Oligonucleotide(sequence.id, subseq, len(subseq), *st.get_olig_stats(subseq))
     olig_list.append(olig)
 
     while True:
@@ -106,7 +107,7 @@ def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
             olig = design_oligos_snp(SeqRecord(Seq(new_subseq), id = sequence.id))
             olig_list.append(olig)
         else:
-            olig = Oligonucleotide(sequence.id, seq[-params.length-1:], *st.get_olig_stats(seq[-params.length-1:]))
+            olig = Oligonucleotide(sequence.id, seq[-params.length-1:], len(seq[-params.length-1:]), *st.get_olig_stats(seq[-params.length-1:]))
             olig_list.append(olig)
             break
 

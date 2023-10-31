@@ -66,6 +66,9 @@ def postprocess_oligos(tmpdir: Path, outdir:Path, vsearch_binary:str, max_id:flo
     :return: Список олигонуклеотидов (объект Oligonucleotide)
     """
 
+    #TODO
+    #Fix oligs clustering
+
     # First step - cluster oligonucleotides using vsearch
     clustered_oligs = cluster_oligos(tmpdir, outdir, logger, vsearch_binary, max_id)
     seq_records_dict = {record.id:record.description \
@@ -74,7 +77,7 @@ def postprocess_oligos(tmpdir: Path, outdir:Path, vsearch_binary:str, max_id:flo
         record.description = seq_records_dict[record.id.split(';')[0]]
     olig_list = []
     for o in clustered_oligs:
-        olig = Oligonucleotide(o.description.split(' ')[1], str(o.seq), *o.description.split(' ')[2:7])
+        olig = Oligonucleotide(o.description.split(' ')[0], str(o.seq), o.description.split(' ')[-1].strip(), *o.description.split(' ')[2:7])
         olig.blastresult = o.description.split(' ')[7]
         olig_list.append(olig)
 
@@ -92,4 +95,4 @@ if __name__ == '__main__':
     tmpdir=Path('./tests/test_reuslts')
     #cluster_oligos(tmpdir, logger, '/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/vsearch', 0.80)
 
-    postprocess_oligos(input_fasta_list, tmpdir, '/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/vsearch', 0.80)
+    postprocess_oligos(tmpdir, tmpdir, '/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/vsearch', 0.80, logger)

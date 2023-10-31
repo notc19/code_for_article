@@ -36,7 +36,7 @@ def create_logger(timestamp: datetime) -> logging:
     fh = logging.FileHandler(
         f'log_oligodesigner_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}.txt',
         mode='w') #-{timestamp.minute}
-    
+
     fh.setLevel(logging.INFO)
     fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
@@ -58,7 +58,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('-b','--input_bed', help='path to input file with tartget regions in bed format',
                              type=str,required=False, default='')
     args_parser.add_argument('-f','--input_fasta', help='path to input file with tartget sequences in fasta format',
-                             type=str,required=False, default='/home/a_vikhorev/Projects/Pannels/1.ATLAS_BRCA/coords/ATLAS_exones.fasta') #tests/FileTest_genome.fasta tests/test_reuslts/test.fasta
+                             type=str,required=False, default='') #tests/FileTest_genome.fasta tests/test_reuslts/test.fasta
     args_parser.add_argument('-o','--output', help='path of output folder',
                              type=str,required=False, default="./tests/test_reuslts")
     args_parser.add_argument('-t','--tmpdir', help='path to directory with temporary files',
@@ -284,7 +284,7 @@ def main():
 
     # Write oligonucleotides to the tsv and excel file
     oligos_df = pd.DataFrame([o.split(' ') for o in list(map(str,oligos))], 
-                                columns=['Olig_id', 'GC', 'Entropy', 'Tm', 'Repeats', 'Masked', 'Blast_Hits', 'Qual', 'Status', 'Seq'])
+                                columns=['Olig_id', 'GC', 'Entropy', 'Tm', 'Repeats', 'Masked', 'Blast_Hits', 'Qual', 'Status', 'Length', 'Seq'])
     oligos_df['Region_Name'] = oligos_df['Olig_id']
     oligos_df['Olig_id'] = [f'olig_{i+1}' for i in range(oligos_df.shape[0])]
     oligos_df.to_csv(outdir/'OUTPUT_Oligonucleotides.tsv', sep='\t', index=False)
