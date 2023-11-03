@@ -293,7 +293,7 @@ def main():
 
     # Perform analysis of designed oligonucleotides
     if params.analytics:
-        olan.analyze_oligos(oligos_df, input_fasta_list, tmpdir, logger)
+        olan.analyze_oligos(oligos_df, input_fasta_list, tmpdir, logger, outdir)
 
     # The end of the program!
     timestamp = datetime.now()

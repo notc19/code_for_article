@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+from oligo_plot import Designer
 
 def get_genome_coords_for_oligos(oligos_df, input_fasta_list, tmpdir, logger):
     """
@@ -29,7 +30,7 @@ def get_genome_coords_for_oligos(oligos_df, input_fasta_list, tmpdir, logger):
             logger.info(f"Oligunucleotide genome coordinates were written in {tmpdir/'OUTPUT_Oligonucleotides.bed'} file")
             outfile.write('\n'.join(['\t'.join(l) for l in olig_bed_list]))
 
-def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, tmpdir, logger:logging) -> None:
+def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, tmpdir, logger:logging, outdir) -> None:
     """
     Эта функция выполняет анализ разработанной панели олигонуклеотидов
     :param oligo_df: Датафрейм с олигонуклеотидами
@@ -47,3 +48,6 @@ def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, tmpdir, logger:
     logger.info(f'The mean Blast Hits in designed oligos is {round(oligo_df["Blast_Hits"].mean(), 3)}')
 
     get_genome_coords_for_oligos(oligo_df, input_fasta_list, tmpdir, logger)
+
+    des = Designer(tmpdir/'INPUT_coords_FIXED.bed', tmpdir/'OUTPUT_Oligonucleotides.bed', result_path=outdir)
+    des.save()
