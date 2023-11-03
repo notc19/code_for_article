@@ -6,8 +6,8 @@ from PIL import Image
 
 class Designer():
 
-    def __init__(self,exon_data_path, olig_data_path,\
-                  with_distr = True, subplots_in_row = 5, figsize = (5,15), dpi = 1000, result_path = "./"):
+    def __init__(self,exon_data_path, olig_data_path, result_path, \
+                  with_distr = True, subplots_in_row = 5, figsize = (5,15), dpi = 1000):
         self.exon_cols = ['crh_name','ex_start', 'ex_end', 'gene_id', 'ex_id', 'type', 'chr_num']
         self.olig_cols = ['crh_name', 'ol_start', 'ol_end', 'ol_id', 'ex_id']
         plt.rcParams.update({'font.size': 2})
@@ -24,17 +24,9 @@ class Designer():
         def csv_reader(path, names):
             return pd.read_csv(path, sep='\t', header=None, names=names)
         
-        try:
-            exon_data = csv_reader(self.exon_data, self.exon_cols)
-            olig_data = csv_reader(self.olig_data, self.olig_cols)
-        except:
-            pass
-
-        #input-path-example
-        exon_data = pd.read_csv(r"C:\Users\admin\Desktop\vikh\app_shit\INPUT_coords_FIXED.bed" ,sep='\t', header=None, names=self.exon_cols)
-
-        #output-path-example
-        olig_data = pd.read_csv(r"C:\Users\admin\Desktop\vikh\app_shit\OUTPUT_Oligonucleotides.bed" ,sep='\t', header=None, names=self.olig_cols)
+        
+        exon_data = csv_reader(self.exon_data, self.exon_cols)
+        olig_data = csv_reader(self.olig_data, self.olig_cols)
         
         gene_ex_cords = {} # gene_id : [ex_id, ex_start, ex_end]
 
@@ -70,14 +62,17 @@ class Designer():
         olig_id = []
 
         curax = axis[cordy, cordx]
+
         for i in olig_list:
             bottom.append(i[1]-e_start)
             len_olig.append(i[2]-i[1])
             olig_id.append(i[0])
+
         for i in range(len(bottom)):
             curax.bar(olig_id[i],len_olig[i], width = 0.2, bottom = bottom[i])
             # bottom[i]+=len_olig[i]
         # curax_dis = axis[cordy-1,cordx]
+
         curax.bar("Exon", e_end - e_start, width = 0.5, bottom = 0, color = 'black', align = 'center')
         curax.set_ylim([-40, e_end-e_start+40])
         curax.tick_params(labelrotation=90, length = 1, width = 1, pad = 1)
@@ -94,7 +89,7 @@ class Designer():
                 coef_sp = 1
             
             plot_floors, plot_rows = self.plot_splitter(len(exons), coef_sp=coef_sp)
-            fig, ax = plt.subplots( plot_rows,plot_floors, figsize = (5,15))
+            fig, ax = plt.subplots(plot_rows,plot_floors, figsize = (5,15))
             
             for id in range(len(exons)):
                 cordx = id%self.subplots_in_row
@@ -105,7 +100,7 @@ class Designer():
                                             olig_list=olig_dict[exons[id][0]], cordx=cordy, cordy=cordx, axis = ax)
             fig.tight_layout()
             # fig.suptitle(gene_name, fontsize = '5')
-            curfile = rf"{self.result_path}{gene_name}_exon_oligo_distr.png"
+            curfile = rf"{self.result_path}/{gene_name}_exon_oligo_distr.png"
             plt.savefig(curfile, dpi = self.dpi, format = 'png')  
             self.png_rotater(curfile)
         
@@ -119,12 +114,3 @@ class Designer():
         exs, oligs = self.data_parser() #insert paths   
         self.exome_container(exs,oligs)      
 
-
-
-# exon_data = r"C:\Users\admin\Desktop\vikh\app_shit\INPUT_coords_FIXED.bed"
-# olig_data = r"C:\Users\admin\Desktop\vikh\app_shit\OUTPUT_Oligonucleotides.bed"
-
-# comp = Designer(exon_data_path=exon_data, olig_data_path=olig_data,\
-#                 with_distr=True)
-
-# comp.save()
