@@ -57,30 +57,38 @@ def prepare_annot_for_genes(annot:Path) -> [dict, dict]:
             exon_list, utr_list = [], []
             exon_id_list, utr_id_list = [], []
             k = 1
-            stop_codon_coords = 0
+            stop_codon_coords = []
             while True:
                 if (i + k == (len(annot))) or (annot[i+k].split('\t')[2] == 'gene'):
+                    if exon_list:
+                        exon_list = sorted(exon_list, key=lambda x: x[0])
+                        if stop_codon_coords:
+                            if strand == '+':
+                                stop_codon_coords = max(stop_codon_coords)
+                                for i in range(len(exon_list)):
+                                    if exon_list[i][1] > stop_codon_coords:
+                                        exon_list[i][1] = stop_codon_coords
+                            elif strand == '-':
+                                stop_codon_coords = min(stop_codon_coords)
+                                for i in range(len(exon_list)):
+                                    if exon_list[i][0] < stop_codon_coords:
+                                        exon_list[i][0] = stop_codon_coords
                     break
+
                 elif annot[i+k].split('\t')[2] == 'exon' and annot[i+k].split('transcript_biotype "')[1].split('";')[0] == 'protein_coding':
+                    strand = annot[i+k].split('\t')[6]
                     exon_id = annot[i+k].split('exon_id "')[1].split('";')[0]
                     if exon_id not in exon_id_list:
-                        exon_list.append([annot[i+k].split('\t')[3], annot[i+k].split('\t')[4]])
+                        exon_list.append([int(annot[i+k].split('\t')[3]), int(annot[i+k].split('\t')[4])])
                         exon_id_list.append(exon_id)
                 elif annot[i+k].split('\t')[2] == 'five_prime_utr' or annot[i+k].split('\t')[2] == 'three_prime_utr':
                     utr_coords = [annot[i+k].split('\t')[3], annot[i+k].split('\t')[4]]
                     if utr_coords not in utr_id_list:
                         utr_list.append(utr_coords)
                 elif annot[i+k].split('\t')[2] == 'stop_codon':
-                    stop_codon_coords = annot[i+k].split('\t')[4]
-                    if exon_list:
-                        if annot[i+k].split('\t')[6] == '+':
-                            exon_list[-1][-1] = stop_codon_coords
-                        else:
-                            exon_list[-1][-1] = stop_codon_coords
+                    stop_codon_coords.append(int(annot[i+k].split('\t')[4]))
+                    
                 k += 1
-
-           #if exon_list:
-           #    exon_list[-1][-1] = stop_codon_coords
 
             gene_dict[gene_id] = [gene_chr, gene_coords, exon_list, utr_list, exon_id_list]
             
