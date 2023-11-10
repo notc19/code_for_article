@@ -38,7 +38,7 @@ def prepare_annot_for_muts(input_muts_list:list, annot:Path) -> dict:
                 
     return transcript_dict
 
-def prepare_annot_for_genes(annot:Path) -> [dict, dict]:
+def prepare_annot_for_genes(annot:Path, logger) -> [dict, dict]:
     """
     Эта функция парсит аннотацию в формате gtf и возвращает словарь, необходимый для поиска координат для генов
     :param annot: Объект Path с путем к аннотации в формате gtf
@@ -64,15 +64,17 @@ def prepare_annot_for_genes(annot:Path) -> [dict, dict]:
                         exon_list = sorted(exon_list, key=lambda x: x[0])
                         if stop_codon_coords:
                             if strand == '+':
-                                stop_codon_coords = max(stop_codon_coords)
-                                for i in range(len(exon_list)):
-                                    if exon_list[i][1] > stop_codon_coords:
-                                        exon_list[i][1] = stop_codon_coords
+                                #logger.error(stop_codon_coords)
+                                for stop in stop_codon_coords:
+                                    for exon in range(len(exon_list)):
+                                        if exon_list[exon][0] <= stop <= exon_list[exon][1]:
+                                            exon_list[exon][1] = stop
                             elif strand == '-':
-                                stop_codon_coords = min(stop_codon_coords)
-                                for i in range(len(exon_list)):
-                                    if exon_list[i][0] < stop_codon_coords:
-                                        exon_list[i][0] = stop_codon_coords
+                                #logger.error(stop_codon_coords)
+                                for stop in stop_codon_coords:
+                                    for exon in range(len(exon_list)):
+                                        if exon_list[exon][0] <= stop <= exon_list[exon][1]:
+                                            exon_list[exon][0] = stop
                     break
 
                 elif annot[i+k].split('\t')[2] == 'exon' and annot[i+k].split('transcript_biotype "')[1].split('";')[0] == 'protein_coding':
@@ -89,6 +91,8 @@ def prepare_annot_for_genes(annot:Path) -> [dict, dict]:
                     stop_codon_coords.append(int(annot[i+k].split('\t')[4]))
                     
                 k += 1
+
+            logger.warning(f'{gene_id} {exon_list}')
 
             gene_dict[gene_id] = [gene_chr, gene_coords, exon_list, utr_list, exon_id_list]
             

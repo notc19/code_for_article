@@ -223,7 +223,7 @@ def main():
             logger.info('Processing annotation file')
             annot = [line.strip() for line in infile.readlines() if not line.startswith('#')]
             if input_genes_list:
-                annot_for_genes, gene_name_dict = utils.prepare_annot_for_genes(annot)
+                annot_for_genes, gene_name_dict = utils.prepare_annot_for_genes(annot, logger)
             if input_muts_list:
                 annot_for_muts = utils.prepare_annot_for_muts(input_muts_list, annot)
             logger.info('Annotation file was processed')
