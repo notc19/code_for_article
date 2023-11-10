@@ -69,7 +69,7 @@ class Designer():
             olig_id.append(i[0])
 
         for i in range(len(bottom)):
-            curax.bar(olig_id[i],len_olig[i], width = 0.2, bottom = bottom[i])
+            curax.bar(olig_id[i],len_olig[i], width = 0.2, bottom = bottom[i], snap=False)
             # bottom[i]+=len_olig[i]
         # curax_dis = axis[cordy-1,cordx]
 
