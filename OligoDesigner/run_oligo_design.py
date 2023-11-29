@@ -114,7 +114,15 @@ def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
         if end == len(seq):
             break
 
-    return olig_list
+    qual_list = []
+    qual_dict = {}
+    for i in range(0, len(seq), 10):
+        gc, entr, mt, repeat, masked = st.get_olig_stats(seq[i:i+10])
+        qual = round((entr - repeat - masked) / (abs(0.65-gc) + abs(70-mt)/100), 3)
+        qual_list.append(qual)
+    qual_dict[sequence.id.split(';')[0]] = qual_list
+
+    return olig_list, qual_dict
 
 def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, param:argparse) -> [Oligonucleotide]:
     """
@@ -149,18 +157,19 @@ def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, param:ar
     if other_seq_list:
         logger.info(f'Start designin oligonucleotides for all regions')
         try:
-            other_oligos = []
+            other_oligos, qual_dict = [], {}
             threads = len(other_seq_list) if len(other_seq_list) < threads else threads
             with multiprocessing.Pool(threads, initargs=(lock,),) as pool:
-                other_oligos_tmp = pool.map(design_oligos, other_seq_list)
-            for oligos in other_oligos_tmp:
-                other_oligos.extend(oligos)
+                output = pool.map(design_oligos, other_seq_list)
+            for oligos in output:
+                other_oligos.extend(oligos[0])
+                qual_dict.update(oligos[1])
             output_oligos.extend(other_oligos)
             logger.info(f'Oligonucleotides were designed!')
         except Exception as e:
             logger.error(e)
 
-    return output_oligos
+    return output_oligos, qual_dict
 
 if __name__ == '__main__':
     inpt = '/home/a_vikhorev/OligoDesigner/tests/test_reuslts/FIXED_clustered_sequences.fasta'
@@ -193,7 +202,8 @@ if __name__ == '__main__':
     binary='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/blastn'
     db='/home/a_vikhorev/Data/DataBases/hg38_blast/hg38'
 
-    oligos = run_oligo_design(seq_list, 14, logger, params)
+    oligos, qual = run_oligo_design(seq_list, 14, logger, params)
 
     print(len(oligos))
     print(oligos[-5:])
+    #print(qual)
