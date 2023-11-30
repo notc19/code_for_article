@@ -270,7 +270,7 @@ def main():
     #                                              params.vsearch_binary, params.target_max_id)
 
     # Create oligonucleotides!
-    oligos, qual = rod.run_oligo_design(input_fasta_list, params.threads, logger, params)
+    oligos, qual_dict = rod.run_oligo_design(input_fasta_list, params.threads, logger, params)
 
     # Write oligos to fasta
     seq_to_write_list = [SeqRecord(Seq(olig[-1]), id = f'olig_{c}', description=' '.join(olig[0:-1])) \
@@ -293,7 +293,7 @@ def main():
 
     # Perform analysis of designed oligonucleotides
     if params.analytics:
-        olan.analyze_oligos(oligos_df, input_fasta_list, tmpdir, logger, outdir)
+        olan.analyze_oligos(oligos_df, input_fasta_list, qual_dict, tmpdir, logger, outdir)
 
     # The end of the program!
     timestamp = datetime.now()

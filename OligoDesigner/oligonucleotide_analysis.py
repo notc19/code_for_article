@@ -30,7 +30,7 @@ def get_genome_coords_for_oligos(oligos_df, input_fasta_list, tmpdir, logger):
             logger.info(f"Oligunucleotide genome coordinates were written in {tmpdir/'OUTPUT_Oligonucleotides.bed'} file")
             outfile.write('\n'.join(['\t'.join(l) for l in olig_bed_list]))
 
-def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, tmpdir, logger:logging, outdir) -> None:
+def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, qual_dict:dict, tmpdir, logger:logging, outdir) -> None:
     """
     Эта функция выполняет анализ разработанной панели олигонуклеотидов
     :param oligo_df: Датафрейм с олигонуклеотидами
@@ -49,5 +49,5 @@ def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, tmpdir, logger:
 
     get_genome_coords_for_oligos(oligo_df, input_fasta_list, tmpdir, logger)
 
-    des = Designer(tmpdir/'INPUT_coords_FIXED.bed', tmpdir/'OUTPUT_Oligonucleotides.bed', result_path=outdir)
+    des = Designer(tmpdir/'INPUT_coords_FIXED.bed', tmpdir/'OUTPUT_Oligonucleotides.bed', qual_dict, result_path=outdir)
     des.save()
