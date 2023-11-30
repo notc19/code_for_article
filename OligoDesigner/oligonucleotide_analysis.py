@@ -49,5 +49,5 @@ def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, qual_dict:dict,
 
     get_genome_coords_for_oligos(oligo_df, input_fasta_list, tmpdir, logger)
 
-    des = Designer(tmpdir/'INPUT_coords_FIXED.bed', tmpdir/'OUTPUT_Oligonucleotides.bed', qual_dict, result_path=outdir)
+    des = Designer(tmpdir/'INPUT_coords_FIXED.bed', tmpdir/'OUTPUT_Oligonucleotides.bed', qual = qual_dict, result_path=outdir)
     des.save()

@@ -6,7 +6,7 @@ from PIL import Image
 
 class Designer():
 
-    def __init__(self,exon_data_path, olig_data_path, result_path, \
+    def __init__(self,exon_data_path, olig_data_path, result_path, qual = [], \
                   with_distr = True, subplots_in_row = 5, figsize = (5,15), dpi = 1000):
         self.exon_cols = ['crh_name','ex_start', 'ex_end', 'gene_id', 'ex_id', 'type', 'chr_num']
         self.olig_cols = ['crh_name', 'ol_start', 'ol_end', 'ol_id', 'ex_id']
@@ -18,6 +18,7 @@ class Designer():
         self.figsize = figsize # tuple(x,y)
         self.dpi = dpi
         self.result_path = result_path
+        self.qual_data = qual
 
     def data_parser(self):
 
@@ -79,6 +80,19 @@ class Designer():
         curax.tick_params(axis = 'y', labelrotation=90)
         # curax.set_yticklabels([e_start, e_start + (e_end-e_start)/2, e_end])
         curax.set_title(f"{olig_id[0]} : {olig_id[-1]}\n {exon_name}\n [{e_start}:{e_end}]", rotation = 90)
+
+    def quality_subplot_designer(self, qx, qy, axis, exon_name):
+        curax = axis[qx,qy]
+        curax.invert_xaxis()
+        xs = self.qual_data[exon_name]
+        ys = list(range(len(xs)))
+        for i in range(len(xs)):
+            ys[i] = ys[i]*10
+        curax.set_ylim([-40, ys[-1]+40])
+        curax.tick_params(labelrotation=90, length = 1, width = 1, pad = 1)
+        curax.tick_params(axis = 'y', labelrotation=90)
+        
+        curax.plot(xs,ys)
     
     def exome_container(self, exome_dict, olig_dict):
         for gene, exons in exome_dict.items():
@@ -94,6 +108,11 @@ class Designer():
             for id in range(len(exons)):
                 cordx = id%self.subplots_in_row
                 cordy = id//self.subplots_in_row*2+1 if self.with_distr else id//self.subplots_in_row
+
+                if self.with_distr:
+                    qx = cordx 
+                    qy = cordy - 1
+                    self.quality_subplot_designer(qx = qx, qy = qy, axis = ax, exon_name = exons[id][0])
 
                 # zaplatka(exon[0],exon[1:3], olig_dict[exon[0]])
                 self.exon_subplot_designer(exon_name=exons[id][0], e_start=exons[id][1], e_end=exons[id][2],\
