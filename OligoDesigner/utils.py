@@ -35,7 +35,7 @@ def prepare_annot_for_muts(input_muts_list:list, annot:Path) -> dict:
                 k += 1
             if start_codon_coord:
                 transcript_dict[transcript_id] = [transcript_chr, exon_list, start_codon_coord, strand]
-                
+
     return transcript_dict
 
 def prepare_annot_for_genes(annot:Path, logger) -> [dict, dict]:
@@ -89,13 +89,11 @@ def prepare_annot_for_genes(annot:Path, logger) -> [dict, dict]:
                         utr_list.append(utr_coords)
                 elif annot[i+k].split('\t')[2] == 'stop_codon':
                     stop_codon_coords.append(int(annot[i+k].split('\t')[4]))
-                    
+
                 k += 1
 
-            logger.warning(f'{gene_id} {exon_list}')
-
             gene_dict[gene_id] = [gene_chr, gene_coords, exon_list, utr_list, exon_id_list]
-            
+
     return gene_dict, gene_name_dict
 
 if __name__ == '__main__':

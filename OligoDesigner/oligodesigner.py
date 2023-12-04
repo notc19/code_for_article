@@ -76,7 +76,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation',
                              type=int, required=False, default=100)
     args_parser.add_argument('-w','--write_intermediate', help='write intermediate results or not',
-                             type=bool, required=False, default=True)
+                             type=bool, required=False, default=False)
     args_parser.add_argument('-v','--genome_version', help='version of the reference genome',
                              type=str, required=False, default='GRCh38')
     args_parser.add_argument('-s','--species', help='Analyzed species',
@@ -86,13 +86,13 @@ def parse_args() -> argparse:
     args_parser.add_argument('-r','--gene_regions', help='Type of gene regions to use [full/exons/exons_utr]',
                              type=str, required=False, default='exon')
     args_parser.add_argument('-j','--intron_depth', help='Depth of introns to include when only exons regions were chosen',
-                             type=str, required=False, default=50)
+                             type=int, required=False, default=50)
     args_parser.add_argument('--download_annotation', help='Download annotation file from Ensembl or not',
                              type=bool, required=False, default=False)
     args_parser.add_argument('--download_genome', help='Download genome file from Ensembl or not',
                              type=bool, required=False, default=False)
     args_parser.add_argument('--process_coordinates', help='Whether to process coordinates to remove duplicate and nested ones and merge intersecting ones',
-                             type=bool, required=False, default=True)
+                             type=bool, required=False, default=False)
     args_parser.add_argument('--process_sequences', help='Whether to process sequences to cluster highly identical ones',
                              type=bool, required=False, default=False)
     args_parser.add_argument('--target_max_id', help='Maximum allowed identity for inpus sequences. Sequences with greater identity will be clustered using vsearch',
@@ -102,7 +102,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('--threads', help='Number of threads',
                              type=int, required=False, default=4)
     args_parser.add_argument('--analytics', help='Whether to perform the analysis of designed oligonucleotides',
-                             type=bool, required=False, default=True)
+                             type=bool, required=False, default=False)
     args_parser.add_argument('--blast_strategy', help='Для каких целей использовать blast. Варианты: filter/analyze',
                              type=str, required=False, default='analyze')
     args_parser.add_argument('--blast_binary', help='Путь до исполняемого файла blastn',
