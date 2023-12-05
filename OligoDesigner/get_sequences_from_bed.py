@@ -28,16 +28,19 @@ def create_fasta_sequences(coords_list:list, chromosome: str, logger:logging) ->
         else:
             description = f'{coords}'
         sequence = chromosome[start-1:end]
-        if coords[5] == 'snp':
+        if len(coords) > 5 and coords[5] == 'snp':
             if (coords[3].upper().count('A') + coords[3].upper().count('T') + coords[3].upper().count('G') \
                 + coords[3].upper().count('C')) == len(coords[3]):
                 if not (allele:=sequence[int(len(sequence)/2)]) == coords[3]:
                     logger.warning(f'For snp {coords[4]} ref allele in snp ({coords[3]}) not equal to allele in provided reference genome ({allele}) in position {int(start + (len(sequence)/2))}. SKIPPING this region!')
                     continue
+
+        record_id = coords[4] if len(coords) > 4 else 'ID'
+        record_name = 'snp' if len(coords) > 5 and coords[5] == 'snp' else coords[3] if len(coords) > 3 else 'NAME'
         record = SeqRecord(
             Seq(sequence),
-            id=coords[4],
-            name='snp' if coords[5] == 'snp' else coords[3],
+            id=record_id,
+            name=record_name,
             description=description
         )
         sequence_list.append(record)
@@ -91,7 +94,7 @@ def get_fasta_seqs_from_bed(coord_list:list, genome:Path, genome_version:str, wr
                     flag = 0
             elif flag:
                 chrom_seq += line
-            
+
     if write_intermediate:
         with open(tmpdir/'INPUT_regions_sequences.fasta', 'w') as outfile:
             logger.info(f"Sequences for input regions were written in {tmpdir/'INPUT_regions_sequences.fasta'} file")
