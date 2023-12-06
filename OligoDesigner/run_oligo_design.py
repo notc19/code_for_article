@@ -8,6 +8,8 @@ from Bio.SeqRecord import SeqRecord
 
 import sequence_tools as st
 
+def calculate_q(entr, repeat, masked, gc, mt):
+    return round((entr - repeat - masked) / (abs(0.65-gc) + abs(70-mt)/100), 3)
 
 class Oligonucleotide():
     """
@@ -25,7 +27,7 @@ class Oligonucleotide():
         self.len = length
 
         try:
-            self.qual = round((self.entr - self.repeat - self.masked) / (abs(0.65-self.gc) + abs(70-self.mt)/100), 3)
+            self.qual = calculate_q(self.entr, self.repeat, self.masked, self.gc, self.mt)
         except ZeroDivisionError:
             self.qual = round(self.entr / 0.01, 3)
 
@@ -40,12 +42,12 @@ class Oligonucleotide():
         return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.len} {self.seq}'
 
     def __repr__(self):
-        return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq[:]}...\n' #
+        return f'{self.idi} {self.gc} {self.entr} {self.mt} {self.repeat} {self.masked} {self.blastresult} {self.qual} {self.status} {self.seq[:]}' #
 
 
-def design_oligos_snp(sequence: SeqRecord) -> Oligonucleotide:
+def select_best_in_window(sequence: SeqRecord) -> Oligonucleotide:
     """
-    Эта функция выполняет дизайн олигонуклеотида для заданного региона со снипом. Перебираются все возможные олигонуклеотиды
+    Эта функция выполняет дизайн олигонуклеотида для заданного региона. Перебираются все возможные олигонуклеотиды
     длиной length от первого до последнего в последовательности, и для каджого считаются параметры. Затем выбирается один 
     (или первый попавшийся идеальный, или тот, у которого максимальный суммарный параметр qual).
     Подразумевается, что снип находится в центре последовательности и даже крайние олигонуклеотиды будут включать этот снип
@@ -81,6 +83,16 @@ def design_oligos_snp(sequence: SeqRecord) -> Oligonucleotide:
 
     return best_olig
 
+def design_oligos_snp(sequence: SeqRecord) -> Oligonucleotide:
+    """
+    Эта функция выполняет дизайн олигонуклеотида для заданного региона со снипом.
+    :param sequence: последовательость (объект SeqRecord)
+    :return: Олигонуклеотид (объект Oligonucleotide)
+    """
+    olig = select_best_in_window(sequence)
+
+    return olig
+
 def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
     """
     Эта функция выполняет дизайн олигонуклеотида для заданного региона.
@@ -93,8 +105,8 @@ def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
     seq = str(sequence.seq)
 
     # create first olig - just first {length} nucleotides from start
-    subseq = seq[:params.length]
-    olig = Oligonucleotide(sequence.id, subseq, len(subseq), *st.get_olig_stats(subseq))
+    subseq = seq[:params.length + abs(params.min_i)]
+    olig = select_best_in_window(SeqRecord(Seq(subseq), id = sequence.id))
     olig_list.append(olig)
 
     while True:
@@ -104,25 +116,19 @@ def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
         new_subseq = seq[start:end+params.length]
 
         if len(new_subseq) >= params.length:
-            olig = design_oligos_snp(SeqRecord(Seq(new_subseq), id = sequence.id))
+            olig = select_best_in_window(SeqRecord(Seq(new_subseq), id = sequence.id))
             olig_list.append(olig)
-        else:
+        elif len(new_subseq) >= params.length * 0.7:
             olig = Oligonucleotide(sequence.id, seq[-params.length-1:], len(seq[-params.length-1:]), *st.get_olig_stats(seq[-params.length-1:]))
             olig_list.append(olig)
+            break
+        else:
             break
 
         if end == len(seq):
             break
 
-    qual_list = []
-    qual_dict = {}
-    for i in range(0, len(seq), 10):
-        gc, entr, mt, repeat, masked = st.get_olig_stats(seq[i:i+10])
-        qual = round((entr - repeat - masked) / (abs(0.65-gc) + abs(70-mt)/100), 3)
-        qual_list.append(qual)
-    qual_dict[sequence.id.split(';')[0]] = qual_list
-
-    return olig_list, qual_dict
+    return olig_list
 
 def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, param:argparse) -> [Oligonucleotide]:
     """
@@ -139,7 +145,7 @@ def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, param:ar
 
     snp_seq_list = [seq for seq in seq_list if seq.name == 'snp' or 'snp' in seq.description]
     other_seq_list = [seq for seq in seq_list if not seq.name == 'snp' and not 'snp' in seq.description]
-    
+
     logger.info(f'There were found {len(snp_seq_list)} sequences with SNP and {len(other_seq_list)} other regions')
 
     output_oligos = []
@@ -160,15 +166,24 @@ def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, param:ar
             other_oligos, qual_dict = [], {}
             threads = len(other_seq_list) if len(other_seq_list) < threads else threads
             with multiprocessing.Pool(threads, initargs=(lock,),) as pool:
-                output = pool.map(design_oligos, other_seq_list)
-            for oligos in output:
-                other_oligos.extend(oligos[0])
-                qual_dict.update(oligos[1])
+                other_oligos_tmp = pool.map(design_oligos, other_seq_list)
+            for oligos in other_oligos_tmp:
+                other_oligos.extend(oligos)
             output_oligos.extend(other_oligos)
             logger.info(f'Oligonucleotides were designed!')
         except Exception as e:
             logger.error(e)
 
+    # Calculate Q for regions
+    other_seq_list.extend(snp_seq_list)
+    qual_dict = {}
+    for sequence in other_seq_list:
+        qual_list = []
+        seq = str(sequence.seq)
+        for i in range(0, len(seq), 10):
+            qual_list.append(calculate_q(*st.get_olig_stats(seq[i:i+10])))
+        qual_dict[sequence.id.split(';')[0]] = qual_list
+    print(qual_dict)
     return output_oligos, qual_dict
 
 if __name__ == '__main__':
@@ -206,4 +221,3 @@ if __name__ == '__main__':
 
     print(len(oligos))
     print(oligos[-5:])
-    #print(qual)
