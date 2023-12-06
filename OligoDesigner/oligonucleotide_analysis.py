@@ -4,7 +4,7 @@ from oligo_plot import Designer
 
 def get_genome_coords_for_oligos(oligos_df, input_fasta_list, tmpdir, logger):
     """
-    Эта функция находит геномные координаты для каждого олига
+    Эта функция находит геномные координаты для каждого олига.
 
     """
     exon_seq_dict, exon_coord_dict = {}, {}

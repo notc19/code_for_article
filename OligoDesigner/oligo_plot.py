@@ -27,6 +27,8 @@ class Designer():
         
         
         exon_data = csv_reader(self.exon_data, self.exon_cols)
+        exon_data['gene_id'] = [x if (x!='A') and (x!='T') and (x!='G') and (x!='C') else 'SNP' for x in exon_data.gene_id]
+
         olig_data = csv_reader(self.olig_data, self.olig_cols)
         
         gene_ex_cords = {} # gene_id : [ex_id, ex_start, ex_end]
