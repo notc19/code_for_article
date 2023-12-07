@@ -88,8 +88,8 @@ class Designer():
         curax.invert_xaxis()
         xs = self.qual_data[exon_name]
         ys = list(range(len(xs)))
-        for i in range(len(xs)):
-            ys[i] = ys[i]*10
+        #for i in range(len(xs)):
+        #    ys[i] = ys[i]*10
         curax.set_ylim([-40, ys[-1]+40])
         curax.tick_params(labelrotation=90, length = 1, width = 1, pad = 1)
         curax.tick_params(axis = 'y', labelrotation=90)
