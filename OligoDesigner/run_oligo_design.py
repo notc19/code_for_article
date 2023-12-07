@@ -180,8 +180,10 @@ def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, param:ar
     for sequence in other_seq_list:
         qual_list = []
         seq = str(sequence.seq)
-        for i in range(0, len(seq), 10):
-            qual_list.append(calculate_q(*st.get_olig_stats(seq[i:i+10])))
+        for i in range(0, len(seq)-params.length):
+            subseq = seq[i:i+params.length]
+            gc, entr, mt, repeat, masked = st.get_olig_stats(subseq)
+            qual_list.append(calculate_q(entr, repeat, masked, gc, mt))
         qual_dict[sequence.id] = qual_list #.split(';')[0]
 
     return output_oligos, qual_dict
