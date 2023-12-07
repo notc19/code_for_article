@@ -81,7 +81,7 @@ class Designer():
         curax.tick_params(labelrotation=90, length = 1, width = 1, pad = 1)
         curax.tick_params(axis = 'y', labelrotation=90)
         # curax.set_yticklabels([e_start, e_start + (e_end-e_start)/2, e_end])
-        curax.set_title(f"{olig_id[0]} : {olig_id[-1]}\n {exon_name}\n [{e_start}:{e_end}]", rotation = 90)
+        curax.set_title(f"{olig_id[0]} : {olig_id[-1]}\n {exon_name.split(';')[0]}\n [{e_start}:{e_end}]", rotation = 90)
 
     def quality_subplot_designer(self, qx, qy, axis, exon_name):
         curax = axis[qx,qy]

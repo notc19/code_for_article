@@ -17,6 +17,9 @@ def drop_nested(coords_sorted:list, logger:logging) -> list:
             int(coords_sorted[idx][2]) <= int(coords_sorted[idx+1][2])):
             var = ' '.join(map(str,coords_sorted[idx]))
             logger.debug(f'Coordinates {coords_sorted[idx][1]}:{coords_sorted[idx][2]} and {coords_sorted[idx+1][1]}:{coords_sorted[idx+1][2]} are nested. Skipping {var} variant!')
+            if len(coords_sorted[idx]) == 7:
+                coords_sorted[idx+1][4] = coords_sorted[idx][4] + ';' + coords_sorted[idx+1][4]
+                coords_sorted[idx+1][5] = coords_sorted[idx][5] + ';' + coords_sorted[idx+1][5]
             if (int(coords_sorted[idx][2])-int(coords_sorted[idx][1])) > \
                     (int(coords_sorted[idx+1][2])-int(coords_sorted[idx+1][1])):
                 logger.error('BUG! Coordinates are not really nested!')
@@ -26,6 +29,9 @@ def drop_nested(coords_sorted:list, logger:logging) -> list:
             int(coords_sorted[idx][2]) <= int(coords_sorted[idx-1][2]):
             var = ' '.join(map(str,coords_sorted[idx]))
             logger.debug(f'Coordinates {coords_sorted[idx][1]}:{coords_sorted[idx][2]} and {coords_sorted[idx-1][1]}:{coords_sorted[idx-1][2]} are nested. Skipping {var} variant!')
+            if len(coords_sorted[idx]) == 7:
+                coords_sorted[idx-1][4] = coords_sorted[idx][4] + ';' + coords_sorted[idx-1][4]
+                coords_sorted[idx-1][5] = coords_sorted[idx][5] + ';' + coords_sorted[idx-1][5]
             if (int(coords_sorted[idx][2])-int(coords_sorted[idx][1])) > \
                     (int(coords_sorted[idx-1][2])-int(coords_sorted[idx-1][1])):
                 logger.error('BUG! Coordinates are not really nested!')

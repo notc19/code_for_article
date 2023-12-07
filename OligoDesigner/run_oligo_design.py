@@ -182,7 +182,7 @@ def run_oligo_design(seq_list:[SeqRecord], threads:int, logger:logging, param:ar
         seq = str(sequence.seq)
         for i in range(0, len(seq), 10):
             qual_list.append(calculate_q(*st.get_olig_stats(seq[i:i+10])))
-        qual_dict[sequence.id.split(';')[0]] = qual_list
+        qual_dict[sequence.id] = qual_list #.split(';')[0]
 
     return output_oligos, qual_dict
 
