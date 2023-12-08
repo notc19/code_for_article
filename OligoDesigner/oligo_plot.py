@@ -19,6 +19,16 @@ class Designer():
         self.dpi = dpi
         self.result_path = result_path
         self.qual_data = qual
+        self.norm_qual()
+
+    def norm_qual(self):
+        normal_lim = 0
+        for i in self.qual_data.values():
+            for j in i:
+                normal_lim = max(normal_lim, j)
+        for i in self.qual_data.keys():
+            for j in range(len(self.qual_data[i])):
+                self.qual_data[i][j] = self.qual_data[i][j]/normal_lim
 
     def data_parser(self):
 
@@ -51,6 +61,7 @@ class Designer():
         
         return gene_ex_cords, ex_olig_cords
     
+
     def plot_splitter(self, num_of_exomes, coef_sp = 2):
         nrow = num_of_exomes
         nfloor = coef_sp
@@ -70,17 +81,16 @@ class Designer():
             bottom.append(i[1]-e_start)
             len_olig.append(i[2]-i[1])
             olig_id.append(i[0])
+        
+        self.len_lim = len_olig[0]
 
         for i in range(len(bottom)):
             curax.bar(olig_id[i],len_olig[i], width = 0.2, bottom = bottom[i], snap=False)
-            # bottom[i]+=len_olig[i]
-        # curax_dis = axis[cordy-1,cordx]
 
         curax.bar("Exon", e_end - e_start, width = 0.5, bottom = 0, color = 'black', align = 'center')
         curax.set_ylim([-40, e_end-e_start+40])
         curax.tick_params(labelrotation=90, length = 1, width = 1, pad = 1)
         curax.tick_params(axis = 'y', labelrotation=90)
-        # curax.set_yticklabels([e_start, e_start + (e_end-e_start)/2, e_end])
         curax.set_title(f"{olig_id[0]} : {olig_id[-1]}\n {exon_name.split(';')[0]}\n [{e_start}:{e_end}]", rotation = 90)
 
     def quality_subplot_designer(self, qx, qy, axis, exon_name):
@@ -88,9 +98,8 @@ class Designer():
         curax.invert_xaxis()
         xs = self.qual_data[exon_name]
         ys = list(range(len(xs)))
-        #for i in range(len(xs)):
-        #    ys[i] = ys[i]*10
-        curax.set_ylim([-40, ys[-1]+40])
+        curax.set_ylim([-40, ys[-1]+40+self.len_lim])
+        curax.set_xlim([1,0])
         curax.tick_params(labelrotation=90, length = 1, width = 1, pad = 1)
         curax.tick_params(axis = 'y', labelrotation=90)
         
@@ -110,15 +119,16 @@ class Designer():
             for id in range(len(exons)):
                 cordx = id%self.subplots_in_row
                 cordy = id//self.subplots_in_row*2+1 if self.with_distr else id//self.subplots_in_row
-
+                
+                self.exon_subplot_designer(exon_name=exons[id][0], e_start=exons[id][1], e_end=exons[id][2], \
+                                            olig_list=olig_dict[exons[id][0]], cordx=cordy, cordy=cordx, axis = ax)
+                
                 if self.with_distr:
                     qx = cordx 
                     qy = cordy - 1
+                    # Здесь расчет отступа добавить, пока что в set.xlim(-40,+40+self.len_lim)
                     self.quality_subplot_designer(qx = qx, qy = qy, axis = ax, exon_name = exons[id][0])
-
-                # zaplatka(exon[0],exon[1:3], olig_dict[exon[0]])
-                self.exon_subplot_designer(exon_name=exons[id][0], e_start=exons[id][1], e_end=exons[id][2],\
-                                            olig_list=olig_dict[exons[id][0]], cordx=cordy, cordy=cordx, axis = ax)
+            
             fig.tight_layout()
             # fig.suptitle(gene_name, fontsize = '5')
             curfile = rf"{self.result_path}/{gene_name}_exon_oligo_distr.png"
