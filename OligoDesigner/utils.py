@@ -77,7 +77,7 @@ def prepare_annot_for_genes(annot:Path, logger) -> [dict, dict]:
                                             exon_list[exon][0] = stop
                     break
 
-                elif annot[i+k].split('\t')[2] == 'exon' and annot[i+k].split('transcript_biotype "')[1].split('";')[0] == 'protein_coding':
+                elif annot[i+k].split('\t')[2] == 'exon' and annot[i+k].split('transcript_biotype "')[1].split('";')[0] == 'protein_coding' and 'tag "MANE_Select"' in annot[i+k]:
                     strand = annot[i+k].split('\t')[6]
                     exon_id = annot[i+k].split('exon_id "')[1].split('";')[0]
                     if exon_id not in exon_id_list:
@@ -87,7 +87,7 @@ def prepare_annot_for_genes(annot:Path, logger) -> [dict, dict]:
                     utr_coords = [annot[i+k].split('\t')[3], annot[i+k].split('\t')[4]]
                     if utr_coords not in utr_id_list:
                         utr_list.append(utr_coords)
-                elif annot[i+k].split('\t')[2] == 'stop_codon':
+                elif annot[i+k].split('\t')[2] == 'stop_codon' and annot[i+k].split('transcript_biotype "')[1].split('";')[0] == 'protein_coding' and 'tag "MANE_Select"' in annot[i+k]:
                     stop_codon_coords.append(int(annot[i+k].split('\t')[4]))
 
                 k += 1

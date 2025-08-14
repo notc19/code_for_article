@@ -76,7 +76,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation',
                              type=int, required=False, default=100)
     args_parser.add_argument('-w','--write_intermediate', help='write intermediate results or not',
-                             type=bool, required=False, default=False)
+                             type=bool, required=False, default=True)
     args_parser.add_argument('-v','--genome_version', help='version of the reference genome',
                              type=str, required=False, default='GRCh38')
     args_parser.add_argument('-s','--species', help='Analyzed species',
@@ -92,7 +92,7 @@ def parse_args() -> argparse:
     args_parser.add_argument('--download_genome', help='Download genome file from Ensembl or not',
                              type=bool, required=False, default=False)
     args_parser.add_argument('--process_coordinates', help='Whether to process coordinates to remove duplicate and nested ones and merge intersecting ones',
-                             type=bool, required=False, default=False)
+                             type=bool, required=False, default=True)
     args_parser.add_argument('--process_sequences', help='Whether to process sequences to cluster highly identical ones',
                              type=bool, required=False, default=False)
     args_parser.add_argument('--target_max_id', help='Maximum allowed identity for inpus sequences. Sequences with greater identity will be clustered using vsearch',
@@ -102,9 +102,9 @@ def parse_args() -> argparse:
     args_parser.add_argument('--threads', help='Number of threads',
                              type=int, required=False, default=4)
     args_parser.add_argument('--analytics', help='Whether to perform the analysis of designed oligonucleotides',
-                             type=bool, required=False, default=False)
+                             type=bool, required=False, default=True)
     args_parser.add_argument('--blast_strategy', help='Для каких целей использовать blast. Варианты: filter/analyze',
-                             type=str, required=False, default='analyze')
+                             type=str, required=False, default='false')
     args_parser.add_argument('--blast_binary', help='Путь до исполняемого файла blastn',
                              type=str, required=False, default='/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/blastn')
     args_parser.add_argument('--blast_db', help='Путь до базы данны blast',
@@ -243,7 +243,7 @@ def main():
         input_genes_bed_list = grfg.get_regions_for_genes(input_genes_list, annot_for_genes, gene_name_dict,
                                                              params.gene_regions, params.intron_depth,
                                                              params.write_intermediate, tmpdir, logger,
-                                                             params.genome_version)
+                                                             params.genome_version, params.length)
         input_bed_list.extend(input_genes_bed_list)
 
     # Get bed regions for input mutations

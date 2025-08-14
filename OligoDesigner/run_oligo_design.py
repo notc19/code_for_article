@@ -63,7 +63,7 @@ def select_best_in_window(sequence: SeqRecord) -> Oligonucleotide:
         subseq = sequence.seq[i:i+params.length]
 
         olig = Oligonucleotide(sequence.id, subseq, len(subseq), *st.get_olig_stats(subseq))
-
+        best_olig = olig
         if params.blast_strategy == 'filter':
             if olig.status == 'perfect' or olig.qual > best_qual:
                 blast_result = st.blastn(params.blast_binary, olig.seq, params.blast_db, 10, 1)
@@ -106,8 +106,12 @@ def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
 
     # create first olig - just first {length} nucleotides from start
     subseq = seq[:params.length + abs(params.min_i)]
-    olig = select_best_in_window(SeqRecord(Seq(subseq), id = sequence.id))
-    olig_list.append(olig)
+    try:
+        olig = select_best_in_window(SeqRecord(Seq(subseq), id = sequence.id))
+        olig_list.append(olig)
+    except:
+        print(subseq, len(subseq))
+        raise Exception
 
     while True:
         previous_end = seq.index(olig.seq) + len(olig.seq)-1
@@ -116,8 +120,12 @@ def design_oligos(sequence: SeqRecord) -> Oligonucleotide:
         new_subseq = seq[start:end+params.length]
 
         if len(new_subseq) >= params.length:
-            olig = select_best_in_window(SeqRecord(Seq(new_subseq), id = sequence.id))
-            olig_list.append(olig)
+            try:
+                olig = select_best_in_window(SeqRecord(Seq(new_subseq), id = sequence.id))
+                olig_list.append(olig)
+            except:
+                print(new_subseq, len(new_subseq))
+                raise Exception
         elif len(new_subseq) >= params.length * 0.7:
             olig = Oligonucleotide(sequence.id, seq[-params.length-1:], len(seq[-params.length-1:]), *st.get_olig_stats(seq[-params.length-1:]))
             olig_list.append(olig)

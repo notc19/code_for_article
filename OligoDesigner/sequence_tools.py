@@ -86,7 +86,7 @@ def calculate_repeat_masked_percent(seq:str) -> float:
 
     return round(counter / len(seq), 3) if counter else 0
 
-def blastn(binary:str, seq:str, blastdb:str, maxhits:int, threads:int):
+def blastn(binary:str, seq:str, blastdb:str, maxhits:int, threads:int) -> list:
     """
     Эта функция выполняет бласт с заданными параметрами для поданной на вход последовательности и возвращает
     список результатов бласта в формате outfmt6

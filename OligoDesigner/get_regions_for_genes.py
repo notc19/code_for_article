@@ -6,7 +6,7 @@ from get_regions_for_mutations import fix_chromosome_name_and_check_coords
 
 def get_regions_for_genes(input_genes_list:list, annot_for_genes:dict, gene_name_dict:dict,
                           gene_regions:str, intron_depth:int, write_intermediate:bool, tmpdir:Path, 
-                          logger:logging, genome_version:str) -> list:
+                          logger:logging, genome_version:str, length:int) -> list:
     """
     Эта функция находит геномные координаты для каждого гена в инпуте (учитывая необходимые регионы и фланки)
     :param input_genes_list: Список генов, для которых необходимо найти координаты
@@ -50,6 +50,12 @@ def get_regions_for_genes(input_genes_list:list, annot_for_genes:dict, gene_name
             for i in range(len(gene_annot[2])):
                 gene_start = int(gene_annot[2][i][0]) - intron_depth
                 gene_end   = int(gene_annot[2][i][1]) + intron_depth
+                exon_length = gene_end - gene_start
+                if exon_length < length:
+                    diff = length - exon_length
+                    gene_start = gene_start - int(diff/2) - 1
+                    gene_end = gene_end + int(diff/2) + 1
+                    print(length, exon_length, diff, gene_end - gene_start)
                 gene_coord_list.append(f'{gene_chr}\t{str(gene_start)}\t{str(gene_end)}\t{gene_name}\t{gene_annot[4][i]}\t{gene_regions}') #
         elif gene_regions == 'exon_utr':
             for i in range(len(gene_annot[3])):
