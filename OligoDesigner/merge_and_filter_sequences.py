@@ -1,25 +1,24 @@
-import logging
+from logging import Logger
 from pathlib import Path
 import os
 import subprocess
-
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 
-def process_sequences(input_fasta_list:[SeqRecord], tmpdir:Path, logger:logging, vsearch_binary:str, max_id:float) -> list:
+def process_sequences(input_fasta_list: list[SeqRecord], tmpdir:Path, logger:Logger, vsearch_binary:str, max_id:float) -> list:
     """
     Эта функция выполняет кластеризацию поданных на вход последовательностей при помощи VSEARCH cluster_fast.
     Затем кластеризованные последовательности считываются при помощи SeqIO, записываются в список и этот список возвращается
     :param input_fasta_list: Список с последовательностями в формате fasta
     :param tmpdir: Объект Path с путем до промежуточной директории
-    :param logger: Объект класса logging
+    :param logger: Объект класса Logger
     :return: Список с fasta-последовательсотями (объект SeqRecord)
     """
     
     if not os.path.exists(tmpdir/'INPUT_regions_sequences.fasta'):
         with open(tmpdir/'INPUT_regions_sequences.fasta', 'w') as outfile:
-             SeqIO.write(input_fasta_list, outfile, "fasta")
+            SeqIO.write(input_fasta_list, outfile, "fasta")
     vsearch_binary = vsearch_binary if vsearch_binary else 'vsearch'
     vsearch_options = [vsearch_binary,
                         '--cluster_fast', f'{tmpdir}/INPUT_regions_sequences.fasta',
@@ -44,9 +43,9 @@ def process_sequences(input_fasta_list:[SeqRecord], tmpdir:Path, logger:logging,
         logger.info(f'VSEARCH clustering is done!')
         logger.info(stderr)
     
-    fixed_fasta_list = list(SeqIO.parse(f'{tmpdir}/INPUT_regions_sequences_FIXED.fasta', "fasta"))
+    fixed_fasta_list = list(SeqIO.parse(f'{tmpdir}/FIXED_clustered_sequences.fasta', "fasta"))
 
-    logger.info(f'There were {len(input_fasta_list)} sequence in input list, but after clustering {len(fixed_fasta_list)} was remained!')
+    logger.info(f'There were {len(input_fasta_list)} sequence in input list, but after clustering {len(fixed_fasta_list)} remained!')
 
     return fixed_fasta_list
 
@@ -55,5 +54,5 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     logger.setLevel(logging.WARNING)
     input_fasta_list = []
-    tmpdir=Path('./tests/test_reuslts')
+    tmpdir=Path('../tests/test_results')
     process_sequences(input_fasta_list, tmpdir, logger)

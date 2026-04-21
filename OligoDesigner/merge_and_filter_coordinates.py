@@ -1,28 +1,29 @@
-import logging
+from logging import Logger
 from pathlib import Path
 
-def drop_nested(coords_sorted:list, logger:logging) -> list:
+def drop_nested(coords_sorted: list, logger: Logger) -> list:
     """
     Эта функция удаляет из списка вложенные списки координат. Координаты считаются вложенными в двух случаях.
     1. Если начальная координата региона совпадает с начальной координатой следующего региона, а координата конца меньше или равна координате конца следующего региона
     2. Если начальная координата региона больше, чем начальная координата следующего региона, но координата конца меньше, чем координата конца следующего региона
     :param coords_sorted: Список регионов, в котором под индексом 1 координата начала, а под индексом 2 координата конца
-    :param logger: Объект класса logging
+    :param logger: Объект класса Logger
     :return: Список, из которого удалены вложенные координаты
     """
     clear_list = []
     for idx in range(len(coords_sorted)):
         if idx < len(coords_sorted)-1 and \
-            (int(coords_sorted[idx][1]) == int(coords_sorted[idx+1][1]) and \
-            int(coords_sorted[idx][2]) <= int(coords_sorted[idx+1][2])):
+            int(coords_sorted[idx][1]) == int(coords_sorted[idx+1][1]) and \
+            int(coords_sorted[idx][2]) <= int(coords_sorted[idx+1][2]):
             var = ' '.join(map(str,coords_sorted[idx]))
             logger.debug(f'Coordinates {coords_sorted[idx][1]}:{coords_sorted[idx][2]} and {coords_sorted[idx+1][1]}:{coords_sorted[idx+1][2]} are nested. Skipping {var} variant!')
             if len(coords_sorted[idx]) == 7:
-                coords_sorted[idx+1][4] = coords_sorted[idx][4] + ';' + coords_sorted[idx+1][4]
-                coords_sorted[idx+1][5] = coords_sorted[idx][5] + ';' + coords_sorted[idx+1][5]
-            if (int(coords_sorted[idx][2])-int(coords_sorted[idx][1])) > \
-                    (int(coords_sorted[idx+1][2])-int(coords_sorted[idx+1][1])):
-                logger.error('BUG! Coordinates are not really nested!')
+                names_current  = set(coords_sorted[idx][4].replace(',', ';').split(';'))
+                names_next = set(coords_sorted[idx+1][4].replace(',', ';').split(';'))
+                feats_current  = set(coords_sorted[idx][5].replace(',', ';').split(';'))
+                feats_next = set(coords_sorted[idx+1][5].replace(',', ';').split(';'))
+                coords_sorted[idx+1][4] = ';'.join(sorted(names_current | names_next))
+                coords_sorted[idx+1][5] = ';'.join(sorted(feats_current | feats_next))
             continue
         if idx > 0 and \
             int(coords_sorted[idx][1]) >  int(coords_sorted[idx-1][1]) and \
@@ -30,22 +31,23 @@ def drop_nested(coords_sorted:list, logger:logging) -> list:
             var = ' '.join(map(str,coords_sorted[idx]))
             logger.debug(f'Coordinates {coords_sorted[idx][1]}:{coords_sorted[idx][2]} and {coords_sorted[idx-1][1]}:{coords_sorted[idx-1][2]} are nested. Skipping {var} variant!')
             if len(coords_sorted[idx]) == 7:
-                coords_sorted[idx-1][4] = coords_sorted[idx][4] + ';' + coords_sorted[idx-1][4]
-                coords_sorted[idx-1][5] = coords_sorted[idx][5] + ';' + coords_sorted[idx-1][5]
-            if (int(coords_sorted[idx][2])-int(coords_sorted[idx][1])) > \
-                    (int(coords_sorted[idx-1][2])-int(coords_sorted[idx-1][1])):
-                logger.error('BUG! Coordinates are not really nested!')
+                names_current  = set(coords_sorted[idx][4].replace(',', ';').split(';'))
+                names_prev = set(coords_sorted[idx-1][4].replace(',', ';').split(';'))
+                feats_current  = set(coords_sorted[idx][5].replace(',', ';').split(';'))
+                feats_prev = set(coords_sorted[idx-1][5].replace(',', ';').split(';'))
+                coords_sorted[idx-1][4] = ';'.join(sorted(names_current | names_prev))
+                coords_sorted[idx-1][5] = ';'.join(sorted(feats_current | feats_prev))
             continue
         clear_list.append(coords_sorted[idx])
         
     return clear_list
 
-def merge_regions(coords_sorted:list, logger:logging, counter:int) -> [list, int]:
+def merge_regions(coords_sorted: list, logger: Logger, counter: int):
     """
     Эта функция сливает координаты пересекающихся регионов. Регионы считаются пересекающимися, если координата начала региона лежит
     между координатами начала и конца предыдущего региона, а координата конца лежит за пределами предыдущего региона.
     :param coords_sorted: Список регионов, в котором под индексом 1 координата начала, а под индексом 2 координата конца
-    :param logger: Объект класса logging
+    :param logger: Объект класса Logger
     :param counter: Число, счетчик пересекающихся регионов
     :return: Список, в котором удалены пересекающиеся координаты, и счетчик пересекающихся координат
     """
@@ -58,10 +60,14 @@ def merge_regions(coords_sorted:list, logger:logging, counter:int) -> [list, int
             logger.debug(f'Coordinates {coords_sorted[idx][1]}:{coords_sorted[idx][2]} and {coords_sorted[idx-1][1]}:{coords_sorted[idx-1][2]} are intersecting')
             coords_sorted[idx][1] = coords_sorted[idx-1][1]
             if len(coords_sorted[idx]) == 7:
-                coords_sorted[idx][4] = coords_sorted[idx][4] + ',' + coords_sorted[idx-1][4]
-                coords_sorted[idx][5] = coords_sorted[idx][5] + ',' + coords_sorted[idx-1][5]
+                names_current  = set(coords_sorted[idx][4].replace(',', ';').split(';'))
+                names_prev = set(coords_sorted[idx-1][4].replace(',', ';').split(';'))
+                feats_current  = set(coords_sorted[idx][5].replace(',', ';').split(';'))
+                feats_prev = set(coords_sorted[idx-1][5].replace(',', ';').split(';'))
+                coords_sorted[idx][4] = ';'.join(sorted(names_current | names_prev))
+                coords_sorted[idx][5] = ';'.join(sorted(feats_current | feats_prev))
             clear_list.append(coords_sorted[idx])
-            counter +=1
+            counter += 1
         elif idx < len(coords_sorted)-1 and \
         int(coords_sorted[idx][2]) >= int(coords_sorted[idx+1][1]) and \
         int(coords_sorted[idx][1]) <  int(coords_sorted[idx+1][1]) and \
@@ -71,7 +77,7 @@ def merge_regions(coords_sorted:list, logger:logging, counter:int) -> [list, int
             clear_list.append(coords_sorted[idx])
     return clear_list, counter
 
-def process_coordinates(input_bed_list:list, write_intermediate:bool, tmpdir:Path, logger:logging) -> list:
+def process_coordinates(input_bed_list:list, write_intermediate:bool, tmpdir:Path, logger:Logger) -> list:
     """
     Эта функция принимает на вход список координат, и удаляет из него вложенные координаты и объединяет пересекающиеся.
     :param input_bed_list: Список регионов, в котором под индексом 1 координата начала, а под индексом 2 координата конца
@@ -108,17 +114,19 @@ def process_coordinates(input_bed_list:list, write_intermediate:bool, tmpdir:Pat
     fixed_bed_list = list(map(('\t').join,fixed_bed_list))
 
     if write_intermediate:
-        with open(tmpdir/'INPUT_coords_FIXED.bed', 'w') as outfile:
-            logger.info(f"Coordinates for input genes were written in {tmpdir/'FIXED_coords.bed'} file")
-            #print('\n'.join(fixed_bed_list))
+        with open(f'{tmpdir}/INPUT_coords_FIXED.bed', 'w') as outfile:
+            logger.info(f"Coordinates for input genes were written in {tmpdir}/INPUT_coords_FIXED.bed file")
             outfile.write('\n'.join(fixed_bed_list))
 
     return fixed_bed_list
 
 
 if __name__ == '__main__':
+    import logging
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+
+    tmpdir = '../tests/test_results'
     input_bed_list = ['chr1\t100\t200\tENSG00000160072\tENSE00003889014\fghfgh\t1',
                       'chr1\t100\t200\tENSG00000160072\tENSE00003889014\texon\t1',
                       'chr1\t100\t500\tENSG00000160072\tENSE00003889014\texon\t1',
@@ -130,4 +138,4 @@ if __name__ == '__main__':
                       'chr1\t7100\t9400\tENSG00000160072\tfull\tfull\t1',
                       'chr1\t900\t1000\tENSG00000160072\tfull\tfull\t1']
     
-    print(process_coordinates(input_bed_list, False, '', logger))
+    process_coordinates(input_bed_list, True, tmpdir, logger)

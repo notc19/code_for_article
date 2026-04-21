@@ -143,5 +143,5 @@ class Designer():
 
     def save(self):
         exs, oligs = self.data_parser() #insert paths   
-        self.exome_container(exs,oligs)      
+        self.exome_container(exs,oligs)   
 

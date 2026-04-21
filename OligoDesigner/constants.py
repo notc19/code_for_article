@@ -23,7 +23,7 @@ genome_versions_chromosome_dict = {
         'NC_000021.9': 'chr21',
         'NC_000022.11': 'chr22',
         'NC_000023.11': 'chrX',
-        'NC_000024.10': 'chrY'
+        'NC_000024.10': 'chrY',
     },
     'GRCh37': {
         'NC_000001.10': 'chr1',
@@ -49,8 +49,8 @@ genome_versions_chromosome_dict = {
         'NC_000021.8': 'chr21',
         'NC_000022.10': 'chr22',
         'NC_000023.10': 'chrX',
-        'NC_000024.9': 'chrY'
-    }
+        'NC_000024.9': 'chrY',
+    },
 }
 
 rev_dict = {

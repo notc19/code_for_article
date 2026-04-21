@@ -1,14 +1,13 @@
 from pathlib import Path
-import logging
+from logging import Logger
 import subprocess
-
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 
 from run_oligo_design import Oligonucleotide
 
-def cluster_oligos(tmpdir:Path, outdir:Path, logger:logging, vsearch_binary:str, max_id:float) -> [Oligonucleotide]:
+def cluster_oligos(tmpdir:Path, outdir:Path, logger:Logger, vsearch_binary:str, max_id:float) -> list[Oligonucleotide]:
     """
     Эта функция выполняет кластеризацию поданных на вход олигов.
     :param tmpdir: директория для промежуточных результатов
@@ -47,7 +46,7 @@ def cluster_oligos(tmpdir:Path, outdir:Path, logger:logging, vsearch_binary:str,
     
     return fixed_fasta_list
 
-def trim_oligos(olig_list:list) -> [Oligonucleotide]:
+def trim_oligos(olig_list:list) -> list[Oligonucleotide]:
     """
     Эта функция выполняет тримминг олигонуклеотидов. С конца олига будут удаляться нуклеотиды до достижения
     минимально допустимой длины, если это удаление будет приводить к увеличению качества олигонуклеотида
@@ -56,7 +55,7 @@ def trim_oligos(olig_list:list) -> [Oligonucleotide]:
     
     return olig_list
 
-def postprocess_oligos(tmpdir: Path, outdir:Path, vsearch_binary:str, max_id:float, logger:logging) -> [Oligonucleotide]:
+def postprocess_oligos(tmpdir: Path, outdir:Path, vsearch_binary:str, max_id:float, logger:Logger) -> list[Oligonucleotide]:
     """
     Эта функция выполняет построцессинг олигонуклеотидов (фильтрацию по кластеризации и тримминг)
     :param outdir: Директория с результатами
@@ -66,8 +65,7 @@ def postprocess_oligos(tmpdir: Path, outdir:Path, vsearch_binary:str, max_id:flo
     :return: Список олигонуклеотидов (объект Oligonucleotide)
     """
 
-    #TODO
-    #Fix oligs clustering
+    #TODO: Fix oligs clustering
 
     # First step - cluster oligonucleotides using vsearch
     clustered_oligs = cluster_oligos(tmpdir, outdir, logger, vsearch_binary, max_id)
@@ -92,7 +90,7 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     logger.setLevel(logging.WARNING)
     input_fasta_list = []
-    tmpdir=Path('./tests/test_reuslts')
+    dir=Path('./tests/test_results')
     #cluster_oligos(tmpdir, logger, '/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/vsearch', 0.80)
 
-    postprocess_oligos(tmpdir, tmpdir, '/home/a_vikhorev/soft/miniconda3/envs/mrbait/bin/vsearch', 0.80, logger)
+    postprocess_oligos(dir, dir, '/home/a_makarova/miniconda3/envs/blast/bin/vsearch', 0.80, logger)
