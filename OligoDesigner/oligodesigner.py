@@ -133,7 +133,7 @@ def parse_args(
                              action=argparse.BooleanOptionalAction, default=False) 
     
     args_parser.add_argument('--predict_blast_offtarget', help='Whether to predict off-target Nbases based on BLAST results',
-                             action=argparse.BooleanOptionalAction, default=False)
+                             action=argparse.BooleanOptionalAction, default=True)
     args_parser.add_argument('--blast_binary', help='Path to blastn binary',
                              type=str, required=False, default='/home/a_makarova/miniconda3/envs/od/bin/blastn')
     args_parser.add_argument('--blast_db', help='Path to BLAST database',
@@ -377,12 +377,12 @@ if __name__ == '__main__':
     if _DEV:
         sys.argv.remove('--dev')
         _defaults = dict(
-            default_input_genes='../tests/FileTest_input_genes_ATLAS',
+            default_input_genes='../tests/FH_genes.txt',
             default_input_muts='',
             default_input_bed='',
             default_input_fasta='',
-            default_output='../tests/6genes_results',
-            default_tmpdir='../tests/6genes_results',
+            default_output='../tests/FH_results',
+            default_tmpdir='../tests/FH_results',
             default_annot='/home/a_makarova/Data/gencode.v49.annotation.gtf',
             default_genome='/home/a_makarova/Data/GCA_000001405.15_GRCh38_full_plus_hs38d1_analysis_set.fna',
             default_genome_index='/home/a_makarova/Data/GRCh38.primary_assembly.genome.fa.awfmi',
