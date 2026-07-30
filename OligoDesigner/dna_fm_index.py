@@ -139,13 +139,15 @@ def analyze_peaks(alignment: np.ndarray, min_height, min_width):
     
 if __name__ == '__main__':
     import pandas as pd
+    import numpy as np
+    import DNAFMIndex
+    #path_to_genome = "../Data/GRCh38.primary_assembly.genome.fa"
+    #fmindex = create_fm_index_from_genome(path_to_genome, None)
+    genome_index = '/home/a_makarova/Data/GRCh38_index.awfmi'
+    fmindex = DNAFMIndex.read_index_from_file(genome_index, False)
     
-    path_to_genome = "../Data/GRCh38.primary_assembly.genome.fa"
-    fmindex = create_fm_index_from_genome(path_to_genome, None)
-
-    inpt = "./test_results/INPUT_regions_sequences.fasta"
+    inpt = "/home/a_makarova/Data/oligs/United_second_panel_oligs.fasta"
     seq_list = list(SeqIO.parse(inpt, "fasta"))
-
     sum_dict = {}
     for i in range(len(seq_list)):
         locus = str(seq_list[i].seq)
@@ -156,10 +158,6 @@ if __name__ == '__main__':
         aligned_sum = np.sum(alignment, axis=1)
         sum_dict[id] = aligned_sum
 
-        heigth = np.max(aligned_sum)*0.1
-        res = analyze_peaks(aligned_sum, min_height=heigth, min_width=1)
-        sum_dict[id] = res
-
     df = pd.DataFrame.from_dict(sum_dict, orient='index')
-    print(df)
+    df.to_csv('../tests/test_results/Second_panel_DNAFM.tsv')
 

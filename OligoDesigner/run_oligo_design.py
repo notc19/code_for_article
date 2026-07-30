@@ -258,7 +258,11 @@ def design_oligos(sequence: SeqRecord) -> list[Oligonucleotide]:
             except Exception as e:
                 raise e
 
-        elif len(new_subseq) >= params.length * 0.7:
+        elif len(new_subseq) < params.length and len(new_subseq) >= params.length * 0.7:
+            new_subseq = seq[-params.length + params.min_i:]
+            oligos = select_best_in_window(SeqRecord(Seq(new_subseq), id = sequence.id), chrom, abs_end-params.length+params.min_i)
+            olig_list.extend(oligos)
+            """
             olig = Oligonucleotide(sequence.id, seq[-params.length:], len(seq[-params.length:]),
                                    chrom, abs_end-params.length, abs_end, *st.get_olig_stats(seq[-params.length:], fmindex))
             olig.intersection = 30
@@ -267,6 +271,7 @@ def design_oligos(sequence: SeqRecord) -> list[Oligonucleotide]:
             predicted_nbases_array = models.predict_ontarget(olig_characteristics)
             olig.qual = round(float(predicted_nbases_array[0]))
             olig_list.append(olig)
+            """
             break
         else:
             break
@@ -366,6 +371,32 @@ def run_oligo_design(seq_list: list[SeqRecord], threads:int, parameters_main, lo
 
     return output_oligos
 
+def calculate_regions_qual(seq_list: list[SeqRecord], fmindex, logger: Logger) -> dict:  
+    """
+    Рассчитывает метрики качества для всех потенциальных олигов из списка 
+    последовательностей SeqRecord (по последовательности - скользящее окно).
+    :param seq_list: список последовательностей SeqRecord
+    :param fmindex: геномный индекс для подсчета off-target
+    :param logger: объект класса Logger
+    :return: словарь со значениями качества всех потенциальных олигов для заданного региона
+    """
+    logger.info('Calculating Q for regions')
+    regions_qual_dict = {}
+    for sequence in seq_list:
+        qual_list = []
+        seq = str(sequence.seq)
+        for i in range(len(seq)-params.length + 1):
+            subseq = seq[i:i+params.length]
+            characteristics = st.get_olig_stats(subseq, fmindex)
+            characteristics_list = list(characteristics) + [params.max_i]
+            characteristics_array = np.array(characteristics_list).reshape(1,-1)
+            predicted_nbases_array = models.predict_ontarget(characteristics_array)
+            qual = round(float(predicted_nbases_array[0]))
+            qual_list.append(qual)
+        regions_qual_dict[sequence.id] = qual_list
+    logger.info('Quality dict for regions is done.')
+    return regions_qual_dict
+
 if __name__ == '__main__':
     timestamp = datetime.now()
     logger, log_handlers = create_logger(timestamp)
@@ -392,8 +423,11 @@ if __name__ == '__main__':
                              type=str, required=False, default='0.10, 0.10, 2')
                              
     args_parser.add_argument('--genome_index', help='path to file with genome index in awfmi format (build by DNAFMIndex)',
-                             type=str, required=False, default='../Data/GRCh38_index.awfmi')
+                             type=str, required=False, default='/home/a_makarova/Data/GRCh38_index.awfmi')
     params = args_parser.parse_args()
+    fmindex = DNAFMIndex.read_index_from_file(params.genome_index, False)
+    models.init_models()
+    regions_qual_dict = calculate_regions_qual(seq_list, fmindex, logger)
 
     oligos = run_oligo_design(seq_list, params.threads, params, logger, log_handlers)
     for olig in oligos:

@@ -17,7 +17,7 @@ def get_absolute_seq_coordinates(sequence: SeqRecord) -> tuple[str, int, int]:
         minus_strand_start = end
         end = start
         start = minus_strand_start
-    return chrom, start, end
+    return chrom, start+1, end+1
 
 def gc_content(seq:str) -> float:
     """

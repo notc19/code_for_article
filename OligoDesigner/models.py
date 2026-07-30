@@ -31,7 +31,12 @@ def init_models():
 
 
 def predict_coverage_class(locus_characteristics):
-
+    """
+    Функция передает массив со значениями 14 характеристик таргетного участка ДНК
+    модели Random Forest, которая предсказывает класс покрытия таргета
+    :param locus_characteristics: numpy-массив характеристик тарегтного участка
+    :return: предсказанный класс покрытия ('high', 'moderate' or 'low' coverage)
+    """
     locus_characteristics_array = np.array(locus_characteristics).reshape(1, -1)
     coverage_class = rf_clf.predict(locus_characteristics_array)
     return coverage_class
@@ -45,7 +50,7 @@ def predict_ontarget(olig_characteristics) -> float:
     quality = (model_ontarget_offtarget.predict(olig_characteristics))
     return quality
 
-def blastn(seq:str, blast_binary:str, blast_db:str, threads:int):
+def blastn(seq:str, blast_binary:str, blast_db:str,  threads:int):
     """
     Эта функция выполняет BLAST с заданными параметрами для поданной на вход последовательности и возвращает
     список результатов BLAST в формате outfmt 6
@@ -71,13 +76,13 @@ def blastn(seq:str, blast_binary:str, blast_db:str, threads:int):
     blastresult = t[0].decode().split('\n')
     return blastresult
 
-def predict_offtarget(blastresult: list) -> int:
+def predict_offtarget(blastresult: list) -> tuple[int, int]:
     """
     Эта функция читает результат BLAST, преобразует его в dataframe,
     рассчитывает % ЭИ BLAST-хитов и количество BLAST-хитов в интервалах % ЭИ,
     а затем передает массив модели XGBoost
     :param blastresult: Список, содержащий результаты BLAST в формате outfmt 6
-    :return: Количество off-target Nbases, предсказанных регрессионной моделью 
+    :return: Количество off-target BLAST-hits и Nbases, предсказанных регрессионной моделью 
     """
     columns=['Olig_id', 'Chromosome', 'pident', 'length', 'Start', 'End', 'qlen']
     df = pd.DataFrame([line.split('\t') for line in blastresult[:-1]], columns=columns).astype({
@@ -91,16 +96,19 @@ def predict_offtarget(blastresult: list) -> int:
     
     if (len(df)==1) and df.pident.values[0]==100:
         # no off-target - no XGBoost prediction
-        offtarget_reads = 0
+        blast_offt_hits = 0
+        offtarget_nbases = 0
 
     else:
         df = df.assign(eff_ident = (df.pident * df.length) / df.qlen)
         df = df.loc[:,['Olig_id','eff_ident']]
 
-        if len(df[df['eff_ident']==100])>5:
-        # 100% off-target - нежелательный олиг, offtarget_reads "максимальный"
-            offtarget_reads = 1000000000
+        if len(df[df['eff_ident']==100]) > 1:
+        # 100% off-target - нежелательный олиг, offtarget_nbases "максимальный"
+            blast_offt_hits = len(df) - 1
+            offtarget_nbases = 1000000000
         else:
+            blast_offt_hits = len(df) - 1
             df = df.assign(percentage_tail = (df.eff_ident//10)*10)
             df = pd.pivot_table(df, index='Olig_id', values='eff_ident', columns='percentage_tail', aggfunc='count')
             if df.shape[1] == 9:
@@ -110,8 +118,8 @@ def predict_offtarget(blastresult: list) -> int:
                 X = [df[i].iloc[0] if i in df.columns else 0 for i in range(20, 100, 10)]
                 X = np.array([X])
                 
-            offtarget_reads = abs(int(model_blast.predict(X)[0]))
-    return offtarget_reads
+            offtarget_nbases = abs(int(model_blast.predict(X)[0]))
+    return blast_offt_hits, offtarget_nbases
 
 def get_blast_offtarget(seq: str, blast_binary: str, blast_db: str, threads: int):
     """
@@ -123,9 +131,9 @@ def get_blast_offtarget(seq: str, blast_binary: str, blast_db: str, threads: int
     :return: список результатов BLAST в формате outfmt 6
     """
     blast_result = blastn(seq, blast_binary, blast_db, threads)
-    blast_offt_score = predict_offtarget(blast_result)
+    blast_offt_hits, offtarget_nbases = predict_offtarget(blast_result)
 
-    return blast_offt_score
+    return blast_offt_hits, offtarget_nbases
 
 if __name__ == '__main__':
     import pandas as pd
@@ -134,26 +142,26 @@ if __name__ == '__main__':
     import sequence_tools as st
 
     init_models()
-    genome_index = '../Data/GRCh38_index.awfmi'
+    genome_index = '/home/a_makarova/Data/GRCh38_index.awfmi'
     fmindex = DNAFMIndex.read_index_from_file(genome_index, False)
-    binary = '../miniconda3/envs/od/bin/blastn'
-    db = '../Data/blastdb_GCA/hg38'    
+    binary = '/home/a_makarova/miniconda3/envs/od/bin/blastn'
+    db = '/home/a_makarova/Data/blastdb_GCA/hg38'    
 
     seq = 'CTCCCCAGTAGCTAGGATTGCAGGCACATGCTACCACACCTGGTTAATTTTTGTATTTTTAGTAGAGACGGGGTTTCACGATGTTGGCCAGGCTGGCTGG'
-    fasta_path = '../tests/test_results/OUTPUT_Oligonucleotides_RAW.fasta'
-
     seq_characteristics = list(st.get_olig_stats(seq, fmindex))
-    seq_characteristics.append(10)
+    seq_characteristics.append(10) #example intersection percent
     seq_characteristics = np.array(seq_characteristics).reshape(1, -1)
     regr_result = predict_ontarget(seq_characteristics)
     print(regr_result)
 
     locus_chars = st.get_locus_stats(seq)
     class_result = predict_coverage_class(locus_chars)
+
+    fasta_path = '/home/a_makarova/Data/oligs/United_second_panel_oligs.fasta' #'../tests/test_results/OUTPUT_Oligonucleotides_RAW.fasta'
     d = {}
     for record in SeqIO.parse(fasta_path, "fasta"):
         seq_str = str(record.seq)
-        offt_score = get_blast_offtarget(seq_str, binary, db, 10)
-        d[record.id] = offt_score
-    df = pd.DataFrame.from_dict(d, orient='index', columns=['offt_score'])
-    df.to_csv('../tests/test_results/cardio_oligs_BLAST_offt.tsv', sep='\t')
+        blast_offt_hits, offt_nbases = get_blast_offtarget(seq_str, binary, db, 20)
+        d[record.id] = [blast_offt_hits, offt_nbases]
+    df = pd.DataFrame.from_dict(d, orient='index', columns=['offt_BLAST_hits', 'offt_Nbases'])
+    df.to_csv('../tests/test_results/Second_panel_oligs_BLAST_offt', sep='\t')

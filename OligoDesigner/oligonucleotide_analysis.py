@@ -2,56 +2,46 @@ from logging import Logger
 import pandas as pd
 from oligo_plot import Designer
 
-def get_genome_coords_for_oligos(oligos_df, input_fasta_list, tmpdir, logger:Logger):
+def norm_qual(qual_data: dict) -> dict:
     """
-    Эта функция находит геномные координаты для каждого олига.
-
+    Нормализует значения качества в qual_data на глобальный максимум,
+    приводя все значения к диапазону [0, 1].
+    Метод изменяет qual_data на месте. Если qual_data пуст или не является
+    словарём, либо глобальный максимум равен нулю, метод завершается без изменений.
+    :param qual_data: словарь с метриками качества, рассчитанными во всех 'окнах' таргетного региона
+    :return: словарь с нормализованными метриками качества данного региона
     """
-    exon_seq_dict, exon_coord_dict = {}, {}
-    for input_fasta in input_fasta_list:
-        if 'start' in input_fasta.description:
-            exon_id = input_fasta.id
-            start_coord = input_fasta.description.split('start:')[1].split(' end')[0]
-            chrom = input_fasta.description.split('chrom:')[1].split(' start')[0]
-            sequence = input_fasta.seq
+    if not qual_data or not isinstance(qual_data, dict):
+        return
+    normal_lim = 0
+    for i in qual_data.values():
+        for j in i:
+            normal_lim = max(normal_lim, j)
+    if normal_lim == 0:
+        return
+    for i in qual_data.keys():
+        for j in range(len(qual_data[i])):
+            qual_data[i][j] = qual_data[i][j] / normal_lim
+    return qual_data
 
-            exon_coord_dict[exon_id] = [chrom, start_coord]
-            exon_seq_dict[exon_id] = sequence
-
-    olig_bed_list = []
-    for _, olig in oligos_df.iterrows():
-        if olig.Region_Name in exon_seq_dict:
-            olig_start_coord = exon_seq_dict[olig.Region_Name].index(olig.Seq) + int(exon_coord_dict[olig.Region_Name][1])
-            olig_end_coord = olig_start_coord + int(olig.Length)
-            olig_chr = exon_coord_dict[olig.Region_Name][0]
-            olig_bed_list.append([olig_chr, str(olig_start_coord), str(olig_end_coord), olig.Olig_id, olig.Region_Name])
-
-    if olig_bed_list:
-        with open(f'{tmpdir}/OUTPUT_Oligonucleotides.bed', 'w') as outfile:
-            logger.info(f"Oligunucleotide genome coordinates were written in {f'{tmpdir}/OUTPUT_Oligonucleotides.bed'} file")
-            outfile.write('\n'.join(['\t'.join(l) for l in olig_bed_list]))
-
-    return olig_bed_list
-
-def analyze_oligos(oligo_df:pd.DataFrame, input_fasta_list:list, qual_dict:dict, tmpdir, logger:Logger, outdir) -> None:
+def analyze_oligos_draw_plots(oligo_df:pd.DataFrame, qual_dict:dict, tmpdir, logger:Logger, outdir) -> None:
     """
     Эта функция выполняет анализ разработанной панели олигонуклеотидов
     :param oligo_df: Датафрейм с олигонуклеотидами
-    :param logger: Объект класса logging
+    :param tmpdir: Путь к директории с временными файлами
+    :param logger: Объект класса Logger
+    :param outdir: Путь к выходной директории
     :return: Ничего не возвращает
     """
-    oligo_df[["GC", "Entropy", "Tm", "Repeats", "Masked", "Blast_Hits"]] = \
-        oligo_df[["GC", "Entropy", "Tm", "Repeats", "Masked", "Blast_Hits"]].apply(pd.to_numeric)
+    logger.info(f'The mean GC content of the designed panel is {round(oligo_df["GC"].mean(), 3)}')
+    logger.info(f'The mean Shannon Entropy of the designed panel is {round(oligo_df["Entropy"].mean(), 3)}')
+    logger.info(f'The mean Melting Temperature of the designed panel is {round(oligo_df["Tm"].mean(), 3)}')
+    logger.info(f'The mean Repeat Length of the designed panel is {round(oligo_df["%1-nt_repeats"].mean(), 3)}')
+    logger.info(f'The mean Masked Length of the designed panel is {round(oligo_df["Masked"].mean(), 3)}')
+    logger.info(f'The mean Off-Target Hits of the designed panel is {round(oligo_df["Off-target_100%"].mean(), 3)}')
 
-    logger.info(f'The mean GC content in designed oligos is {round(oligo_df["GC"].mean(), 3)}')
-    logger.info(f'The mean Shannon Entropy in designed oligos is {round(oligo_df["Entropy"].mean(), 3)}')
-    logger.info(f'The mean Melting Temperature in designed oligos is {round(oligo_df["Tm"].mean(), 3)}')
-    logger.info(f'The mean Repeat Length in designed oligos is {round(oligo_df["Repeats"].mean(), 3)}')
-    logger.info(f'The mean Masked Length in designed oligos is {round(oligo_df["Masked"].mean(), 3)}')
-    logger.info(f'The mean Blast Hits in designed oligos is {round(oligo_df["Blast_Hits"].mean(), 3)}')
+    normalized_qual_dict = norm_qual(qual_dict)
 
-    olig_bed_list = get_genome_coords_for_oligos(oligo_df, input_fasta_list, tmpdir, logger)
-
-    if olig_bed_list:
-        des = Designer(f'{tmpdir}/INPUT_coords_FIXED.bed', f'{tmpdir}/OUTPUT_Oligonucleotides.bed', qual = qual_dict, result_path=outdir)
-        des.save()
+    des = Designer(f'{tmpdir}/INPUT_coords_FIXED.bed', f'{tmpdir}/OUTPUT_Oligonucleotides.bed', 
+                   quality_dict = normalized_qual_dict, result_path = outdir)    
+    des.save()

@@ -13,6 +13,7 @@ import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+import DNAFMIndex
 
 import get_regions_for_mutations as grfm
 import get_regions_for_genes as grfg
@@ -25,6 +26,7 @@ import run_oligo_design as rod
 import run_oligo_postprocessing as rop
 import oligonucleotide_analysis as olan
 import utils
+import models
 
 def create_logger(timestamp: datetime):
     """
@@ -107,9 +109,9 @@ def parse_args(
     args_parser.add_argument('-l','--length', help='Length of the designed olignucleotide bait',
                              type=int, required=False, default=100)
     args_parser.add_argument('--max_i', help='Maximum intersection of oligos in region',
-                             type=int, required=False, default=10)
+                             type=int, required=False, default=50)
     args_parser.add_argument('--min_i', help='Minimum intersection of oligos in region',
-                             type=int, required=False, default=-10)
+                             type=int, required=False, default=-20)
     args_parser.add_argument('-k','--mutation_flank', help='Flank length from mutation',
                              type=int, required=False, default=100)
     args_parser.add_argument('-r','--gene_regions', help='Type of gene regions to use [full/exons/exons_utr]',
@@ -125,19 +127,17 @@ def parse_args(
                              type=float, required=False, default=0.999)
     args_parser.add_argument('--vsearch_binary', help='Absolute path to vsearch binary file',
                              type=str, required=False, default='')
-    args_parser.add_argument('--analytics', help='Whether to perform the analysis of designed oligonucleotides',
-                             action=argparse.BooleanOptionalAction, default=False)
-    args_parser.add_argument('--postprocess_oligos', help='Выполнять ли постпроцессинг подобранных олигонуклеотидов',
+    args_parser.add_argument('--analytics', help='Whether to perform the analysis of the designed oligonucleotides',
+                             action=argparse.BooleanOptionalAction, default=True)
+    args_parser.add_argument('--postprocess_oligos', help='Whether to perform postprocessing of the designed oligonucleotides',
                              action=argparse.BooleanOptionalAction, default=False) 
     
-    args_parser.add_argument('--blast_strategy', help='Для каких целей использовать blast. Варианты: filter/analyze',
-                             type=str, required=False, default='analyze')
-    args_parser.add_argument('--blast_binary', help='Путь до исполняемого файла blastn',
-                             type=str, required=False, default='')
-    args_parser.add_argument('--blast_db', help='Путь до базы данныx blast',
-                             type=str, required=False, default='')
-    args_parser.add_argument('--blast_filtering_params', help='Параметры для фильтрации результатов бласта (identity, coverage, степень e-value)',
-                             type=str, required=False, default='0.1,0.1,2')
+    args_parser.add_argument('--predict_blast_offtarget', help='Whether to predict off-target Nbases based on BLAST results',
+                             action=argparse.BooleanOptionalAction, default=False)
+    args_parser.add_argument('--blast_binary', help='Path to blastn binary',
+                             type=str, required=False, default='/home/a_makarova/miniconda3/envs/od/bin/blastn')
+    args_parser.add_argument('--blast_db', help='Path to BLAST database',
+                             type=str, required=False, default='/home/a_makarova/Data/blastdb_GCA/hg38')
     return args_parser.parse_args()
 
 def parse_input(inpt:str, logger:Logger, feature:str) -> list | SeqRecord:
@@ -219,6 +219,9 @@ def main():
 
     # Read params
     params = parse_args()
+    if params.analytics and not params.process_coordinates:
+        logger.info("Parameter --process_coordinates should be 'True' to perform the panel analysis")
+        exit(1)
     logger.info(f'OligoDesigner was launched for {params.gene_regions} regions, intron depth={params.intron_depth}.')
 
     # Read input files
@@ -326,7 +329,7 @@ def main():
     # Write oligonucleotides to excel and bed files
     oligos_df = pd.DataFrame([o.split(' ') for o in list(map(str,oligos))], 
                              columns=[
-                                'Olig_id', 'GC', 'Entropy', 'Tm', 'Masked', 
+                                'Region_Name', 'GC', 'Entropy', 'Tm', 'Masked', 
                                 '%1-nt_repeats', '%2-nt_repeats', '%3-nt_repeats', 
                                 'Off-target_100%', 'Intersection', 'Length', 'Qual', 
                                 'Seq', 'Chromosome', 'Start', 'End'
@@ -337,20 +340,30 @@ def main():
         'Off-target_100%', 'Intersection', 'Length', 'Qual',
         'Start', 'End'
     ]
-
     oligos_df[numeric_cols] = oligos_df[numeric_cols].apply(pd.to_numeric)
     
-    oligos_df['Region_Name'] = oligos_df['Olig_id']
-    oligos_df['Olig_id'] = [f'olig_{i+1}' for i in range(oligos_df.shape[0])]
+    # Perform BLAST analysis and predict Off-target Nbases
+    if params.predict_blast_offtarget:
+        logger.info("Predicting BLAST Off-target Nbases...")
+        models.init_models()
+        oligos_df[['BLAST_offtarget_hits', 'BLAST_offt_Nbases']] = oligos_df['Seq'].apply(
+            models.get_blast_offtarget, args=(params.blast_binary, params.blast_db, params.threads)
+        ).apply(pd.Series)
+            
+    oligos_df.insert(0, 'Olig_id', [f'olig_{i+1}' for i in range(oligos_df.shape[0])])
     oligos_df.to_excel(f'{outdir}/OUTPUT_Oligonucleotides.xlsx', index=False)
     logger.info(f'Oligonucleotides were written in {outdir}/OUTPUT_Oligonucleotides.xlsx file')
 
-    oligos_bed = oligos_df[['Chromosome', 'Start', 'End', 'Olig_id']]
+    oligos_bed = oligos_df[['Chromosome', 'Start', 'End', 'Olig_id', 'Region_Name']]
     oligos_bed.to_csv(f'{outdir}/OUTPUT_Oligonucleotides.bed', sep='\t', index=False, header=False)
     
     # Perform analysis of designed oligonucleotides
     if params.analytics:
-        olan.analyze_oligos(oligos_df, input_fasta_list, tmpdir, logger, outdir)
+        models.init_models()
+        fmindex = DNAFMIndex.read_index_from_file(params.genome_index, False)
+        regions_qual_dict = rod.calculate_regions_qual(input_fasta_list, fmindex, logger)
+        logger.info("Panel analysis results:")
+        olan.analyze_oligos_draw_plots(oligos_df, regions_qual_dict, tmpdir, logger, outdir)
 
     # The end of the program!
     timestamp = datetime.now()
@@ -364,15 +377,15 @@ if __name__ == '__main__':
     if _DEV:
         sys.argv.remove('--dev')
         _defaults = dict(
-            default_input_genes='../tests/FileTest_cardio_genes.txt',
+            default_input_genes='../tests/FileTest_input_genes_ATLAS',
             default_input_muts='',
             default_input_bed='',
             default_input_fasta='',
-            default_output='../tests/test_results',
-            default_tmpdir='../tests/test_results',
-            default_annot='../tests/FileTest_cardio_gencode_annot',
-            default_genome='',
-            default_genome_index='',
+            default_output='../tests/6genes_results',
+            default_tmpdir='../tests/6genes_results',
+            default_annot='/home/a_makarova/Data/gencode.v49.annotation.gtf',
+            default_genome='/home/a_makarova/Data/GCA_000001405.15_GRCh38_full_plus_hs38d1_analysis_set.fna',
+            default_genome_index='/home/a_makarova/Data/GRCh38.primary_assembly.genome.fa.awfmi',
         )
     else:
         _defaults = {}   # all path args default to None, supply them via CLI
