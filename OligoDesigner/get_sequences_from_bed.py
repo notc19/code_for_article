@@ -30,7 +30,7 @@ def create_fasta_sequences(coords_list:list, chromosome: str, logger:Logger) -> 
             else:
                 description = f'Region chrom:{coords[0]} start:{start} end:{end} gene:{coords[3]} exon:{coords[4]}'
         else:
-            description = f'{coords}'
+            description = f'Region chrom:{coords[0]} start:{start} end:{end}'
         sequence = chromosome[start-1:end]
 
         if len(coords) >= 6 and coords[5] == 'snp':

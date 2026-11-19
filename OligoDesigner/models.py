@@ -47,7 +47,8 @@ def predict_ontarget(olig_characteristics) -> float:
     :param olig_characteristics: numpy-массив характеристик олигонуклеотида
     :return: Количество on-target Nbases, предсказанное регрессионной моделью
     """
-    quality = (model_ontarget_offtarget.predict(olig_characteristics))
+    quality_log1p = (model_ontarget_offtarget.predict(olig_characteristics))
+    quality = np.expm1(quality_log1p)
     return quality
 
 def blastn(seq:str, blast_binary:str, blast_db:str,  threads:int):
@@ -156,12 +157,12 @@ if __name__ == '__main__':
 
     locus_chars = st.get_locus_stats(seq)
     class_result = predict_coverage_class(locus_chars)
-
-    fasta_path = '/home/a_makarova/Data/oligs/United_second_panel_oligs.fasta' #'../tests/test_results/OUTPUT_Oligonucleotides_RAW.fasta'
+    
+    fasta_path = '../tests/test_results/OUTPUT_Oligonucleotides_RAW.fasta'
     d = {}
     for record in SeqIO.parse(fasta_path, "fasta"):
         seq_str = str(record.seq)
         blast_offt_hits, offt_nbases = get_blast_offtarget(seq_str, binary, db, 20)
         d[record.id] = [blast_offt_hits, offt_nbases]
     df = pd.DataFrame.from_dict(d, orient='index', columns=['offt_BLAST_hits', 'offt_Nbases'])
-    df.to_csv('../tests/test_results/Second_panel_oligs_BLAST_offt', sep='\t')
+    df.to_csv('../tests/test_results/BLAST-hits_output.tsv', sep='\t')
